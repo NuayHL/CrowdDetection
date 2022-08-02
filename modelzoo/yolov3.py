@@ -6,7 +6,7 @@ from modelzoo.neck import Yolov3_neck
 from modelzoo.head import Yolov3_head
 
 class Yolov3(nn.Module):
-    def __init__(self, classes, anchors_per_grid, loss):
+    def __init__(self, classes, anchors_per_grid):
         super(Yolov3, self).__init__()
         self.backbone = Darknet53()
         self.neck = Yolov3_neck()
@@ -19,16 +19,17 @@ class Yolov3(nn.Module):
             return self.inferencing(sample)
     def training_loss(self,sample):
         pass
-    def inferencing(self,sample):
+    def inferencing(self, sample):
+        pass
+    def core(self,sample):
         p3, p4, p5 = self.backbone(sample['imgs'])
         p3, p4, p5 = self.neck(p3, p4, p5)
         p3, p4, p5 = self.head(p3, p4, p5)
         return p3, p4, p5
 
 if __name__ == '__main__':
-    model = Yolov3(1, 4)
-    input = torch.rand((1,3,640,640))
+    model = Yolov3(1, 4).cuda()
+    input = torch.rand((1,3,640,640)).cuda()
     input = {'imgs':input}
-    model.eval()
-    output = model(input)
+    output = model.core(input)
     print(output[0].shape,output[1].shape,output[2].shape)

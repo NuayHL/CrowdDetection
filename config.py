@@ -26,13 +26,12 @@ def get_default_cfg():
     return c.clone()
 
 def get_default_yaml_templete():
-    cfg_string = get_default_cfg().dump()
-    with open("default_config.yaml", "w") as f:
-        f.write(cfg_string)
+    cfg = get_default_cfg()
+    cfg.dump_to_file('default_config')
 
 if __name__ == "__main__":
     cfg = get_default_cfg()
     print(type(cfg))
     cfg.merge_from_file('default_config.yaml')
-    print(cfg.exp_name)
-    #get_default_yaml_templete()
+    print(cfg)
+    # get_default_yaml_templete()
