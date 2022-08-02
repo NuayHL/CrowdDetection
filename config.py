@@ -33,8 +33,4 @@ def get_default_yaml_templete():
     cfg.dump_to_file('default_config')
 
 if __name__ == "__main__":
-    cfg = get_default_cfg()
-    print(type(cfg))
-    cfg.merge_from_file('default_config.yaml')
-    print(cfg)
-    # get_default_yaml_templete()
+    get_default_yaml_templete()
