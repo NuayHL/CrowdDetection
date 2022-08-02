@@ -9,7 +9,7 @@ class Yolov3(nn.Module):
     def __init__(self, config, backbone, neck, head):
         super(Yolov3, self).__init__()
         self.config = config
-        self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
+        self.pretrain_settings()
         self.backbone = backbone
         self.neck = neck
         self.head = head
@@ -19,14 +19,30 @@ class Yolov3(nn.Module):
             return self.training_loss(sample)
         else:
             return self.inferencing(sample)
-    def core(self,sample):
-        p3, p4, p5 = self.backbone(sample['imgs'])
+    def core(self,input):
+        p3, p4, p5 = self.backbone(input)
         p3, p4, p5 = self.neck(p3, p4, p5)
         p3, p4, p5 = self.head(p3, p4, p5)
         return p3, p4, p5
+
+    def set(self, args, device):
+        self.device = device
+        self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
+        self.assignment = AnchorAssign(self.config, device)
+        self.loss = GeneralLoss(self.config, device)
+
     def training_loss(self,sample):
-        p3, p4, p5 = self.core(sample)
+        p3, p4, p5 = self.core(sample['imgs'])
         dt = self._result_parse((p3,p4,p5))
+
+        reg_dt = dt[:, :4,:]
+        obj_dt = dt[:, 4, :]
+        cls_dt = dt[:, 5:, :]
+
+        for anns_ib in sample['annss']:
+            assign_result = self.assignment.assign(anns_ib)
+            label_pos_neg
+
 
         if self.useignore:
             assign_result, gt = self.label_assignment.assign(gt)
@@ -127,8 +143,7 @@ class Yolov3(nn.Module):
         '''
         out = torch.zeros((triple[0].shape[0], int(5 + self.config.data.numofclasses), 0))
         if torch.cuda.is_available():
-            device = triple[0].device
-            out = out.to(device)
+            out = out.to(self.device)
         for fp in triple:
             fp = torch.flatten(fp, start_dim=2)
             split = torch.split(fp, int(fp.shape[1] / self.anchors_per_grid), dim=1)

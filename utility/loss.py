@@ -7,11 +7,10 @@ class GeneralLoss():
     reg loss: smooth l1
     cls loss: bce + focal
     '''
-    def __init__(self, config, args, rank):
+    def __init__(self, config, device):
         self.config = config
-        self.args = args
         self.loss_parse()
-        self.device = rank if rank != -1 else 'cuda'
+        self.device = device
 
     def loss_parse(self):
         self.reg_loss = []
@@ -30,9 +29,6 @@ class GeneralLoss():
             i.e.  Tensor: Batchsize X (4+1+classes) X samples
         gt: list, each is np.array, with shape (4+1) at dim=-1
         '''
-        classes = cls_dt.shape[-1]
-        batch_size = cls_dt.shape[0]
-
         losses = {}
 
         for i, loss in enumerate(self.reg_loss):
@@ -47,7 +43,7 @@ class GeneralLoss():
         for key in losses:
             losses[key] = losses[key].detach().cpu().item()
 
-        return fin_loss/batch_size, losses
+        return fin_loss, losses
 
 class FocalBCE():
     def __init__(self, config, device):
