@@ -11,10 +11,6 @@ class GeneralLoss():
         self.config = config
         self.args = args
         self.loss_parse()
-        self.usefocal = config.training.loss.use_focal
-        if self.usefocal:
-            self.alpha = config.training.loss.focal_alpha
-            self.gamma = config.training.loss.focal_gamma
         self.device = rank if rank != -1 else 'cuda'
 
     def loss_parse(self):
@@ -26,7 +22,7 @@ class GeneralLoss():
             if method in ['l1']:
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = BCE()
+        self.cls_loss = FocalBCE(self.config, self.device)
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''
@@ -94,7 +90,6 @@ class GeneralLoss():
                 alpha = torch.where(torch.eq(assign_result_cal, 1.), alpha, 1. - alpha)
                 focal_weight = torch.where(torch.eq(assign_result_cal, 1.), 1 - cls_dt_cal, cls_dt_cal)
                 focal_weight = alpha * torch.pow(focal_weight, self.gamma)
-                debug_sum_fo = focal_weight.sum()
                 cls_fcloss_ib = focal_weight * cls_loss_ib
             else:
                 cls_fcloss_ib = cls_loss_ib
@@ -132,26 +127,28 @@ class GeneralLoss():
         loss = torch.add(bbox_loss,cls_loss)
         return loss/self.batch_size
 
-class DetectionLoss():
-    def __init__(self, config):
-        pass
-    def __call__(self, dt, gt):
-        return 0
-
-class BCE():
-    def __init__(self, use_focal, reduction='none', eps=1e-7):
-        self.use_focal = use_focal
-        self.reduction = reduction
-        self.eps = eps
+class FocalBCE():
+    def __init__(self, config, device):
+        self.use_focal = config.loss.use_focal
+        self.alpha = config.loss.focal_alpha
+        self.gamma = config.loss.focal_gamma
+        self.device = device
+        self.baseloss = nn.BCELoss(reduction='none')
     def __call__(self, dt_cls, gt_cls):
-
-        pass
+        bceloss = self.baseloss(dt_cls, gt_cls)
+        if self.use_focal:
+            alpha = torch.ones(dt_cls.shape).to(self.device) * self.alpha
+            alpha = torch.where(torch.eq(gt_cls, 1.), alpha, 1. - alpha)
+            focal_weight = torch.where(torch.eq(gt_cls, 1.), 1 - dt_cls, dt_cls)
+            focal_weight = alpha * torch.pow(focal_weight, self.gamma)
+            bceloss *= focal_weight
+        return bceloss
 
 class SmoothL1():
     def __init__(self):
-        pass
-    def __call__(self, *args, **kwargs):
-        pass
+        self.baseloss = nn.SmoothL1Loss(beta=1./9, reduction='sum')
+    def __call__(self, dt, gt):
+        return self.baseloss(dt, gt)
 
 class IOUloss():
     """ Calculate IoU loss.

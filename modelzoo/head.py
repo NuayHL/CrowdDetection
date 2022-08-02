@@ -3,6 +3,14 @@ import torch.nn as nn
 
 from modelzoo.common import conv_batch
 
+"""
+head init format:
+    if using anchor: 
+        def __init__(self, classes, anchors_per_grid, p3c)
+    if not using anchor:
+        def __init__(self, classes, p3c)
+"""
+
 class Yolov3_head(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3_channels=128):
         super(Yolov3_head, self).__init__()
@@ -21,3 +29,9 @@ class Yolov3_head(nn.Module):
         p4 = self.p4_head(p4)
         p5 = self.p5_head(p5)
         return p3, p4, p5
+
+def build_head(name):
+    if name == 'yolov3_head':
+        return Yolov3_head
+    else:
+        raise NotImplementedError('No head named %s'%name)

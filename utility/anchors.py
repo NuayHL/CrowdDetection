@@ -1,27 +1,29 @@
 import numpy as np
 
-def generateAnchors(config, fpnlevels=None, basesize=None, ratios=None, scales=None, singleBatch=False, ):
+def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''
     return: batch_size X total_anchor_numbers X 4
     anchor box type: x1y1x2y2
     singleBatch: set True if only need batchsize at 1
     '''
     if fpnlevels == None:
-        fpnlevels = config.anchorLevels
+        fpnlevels = config.model.fpnlevels
     if basesize == None:
         basesize = [2**(x+2) for x in fpnlevels]
     if ratios == None:
         # ratios = h/w
-        ratios = config.anchorRatio
+        ratios = config.model.anchor_ratios
     if scales == None:
-        scales = config.anchorScales
+        scales = config.model.anchor_scales
 
-    # formate = x1y1x2y2
+    assert len(fpnlevels) == len(basesize)
+
+    # formate = xywh
     allAnchors = np.zeros((0,4)).astype(np.float32)
     for idx, p in enumerate(fpnlevels):
         stride = [2**p, 2**p]
-        xgrid = np.arange(0, config.input_width, stride[0]) + stride[0] / 2.0
-        ygrid = np.arange(0, config.input_height, stride[1]) + stride[1] / 2.0
+        xgrid = np.arange(0, config.data.input_width, stride[0]) + stride[0] / 2.0
+        ygrid = np.arange(0, config.data.input_height, stride[1]) + stride[1] / 2.0
         xgrid, ygrid = np.meshgrid(xgrid, ygrid)
         anchors = np.vstack((xgrid.ravel(),ygrid.ravel()))
         lenAnchors = anchors.shape[1]
@@ -29,10 +31,8 @@ def generateAnchors(config, fpnlevels=None, basesize=None, ratios=None, scales=N
         start = 0
         for ratio in ratios:
             for scale in scales:
-                anchors[start:start+lenAnchors, 0] -= basesize[idx] * scale / 2.0
-                anchors[start:start+lenAnchors, 1] -= basesize[idx] * scale * ratio / 2.0
-                anchors[start:start+lenAnchors, 2] += basesize[idx] * scale / 2.0
-                anchors[start:start+lenAnchors, 3] += basesize[idx] * scale * ratio / 2.0
+                anchors[start:start+lenAnchors, 2] = basesize[idx] * scale
+                anchors[start:start+lenAnchors, 3] = basesize[idx] * scale * ratio
                 start += lenAnchors
         allAnchors = np.append(allAnchors,anchors,axis=0)
 
@@ -40,24 +40,21 @@ def generateAnchors(config, fpnlevels=None, basesize=None, ratios=None, scales=N
     if singleBatch: return allAnchors
 
     # batchedAnchor return Batchsize X total_anchor_number X 4
-    allAnchors = np.tile(allAnchors, (config.batch_size, 1, 1))
-
+    allAnchors = np.tile(allAnchors, (config.training.batch_size, 1, 1))
     return allAnchors
 
-def anchors_parse(config,fplevel=None,ratios=None,scales=None,anchors=generateAnchors(singleBatch=True)):
-    anchors[:, 0] += config.input_width/2
-    anchors[:, 2] += config.input_width/2
-    anchors[:, 1] += config.input_height/2
-    anchors[:, 3] += config.input_height/2
+def anchors_parse(config, anchors, fplevel=None,ratios=None,scales=None):
+    anchors[:, 0] += float(config.data.input_width/2)
+    anchors[:, 1] += float(config.data.input_height/2)
     if fplevel is None:
-        fplevel = config.anchorLevels
+        fplevel = config.model.fpnlevels
     if scales is None:
-        scales = config.anchorScales
+        scales = config.model.anchor_scales
     if ratios is None:
-        ratios = config.anchorRatio
+        ratios = config.model.anchor_ratios
     anchors_per_grid = len(scales) * len(ratios)
-    width = config.input_width
-    height = config.input_height
+    width = config.data.input_width
+    height = config.data.input_height
     begin_level = 0
     parsed_anch = []
     for i in fplevel:

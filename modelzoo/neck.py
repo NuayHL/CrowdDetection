@@ -31,3 +31,10 @@ class Yolov3_neck(nn.Module):
         p4_to_p3 = interpolate(self.p4_to_p3(p4), size=(p3.shape[2], p3.shape[3]))
         p3 = self.p3_out(torch.cat((p3, p4_to_p3), dim=1))
         return p3, p4, p5
+
+def build_neck(name):
+    '''return neckClass, ratio on p3c'''
+    if name == 'yolov3_neck':
+        return Yolov3_neck, 0.5
+    else:
+        raise NotImplementedError('No neck named %s'%name)
