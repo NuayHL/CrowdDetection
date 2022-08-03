@@ -12,7 +12,6 @@ class Yolov3(nn.Module):
     def __init__(self, config, backbone, neck, head):
         super(Yolov3, self).__init__()
         self.config = config
-        self.pretrain_settings()
         self.backbone = backbone
         self.neck = neck
         self.head = head

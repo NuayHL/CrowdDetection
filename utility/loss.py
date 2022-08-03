@@ -9,12 +9,12 @@ class GeneralLoss():
     '''
     def __init__(self, config, device):
         self.config = config
-        self.loss_parse()
         self.device = device
+        self.loss_parse()
 
     def loss_parse(self):
         self.reg_loss = []
-        self.reg_loss_type = self.config.training.loss.reg_type
+        self.reg_loss_type = self.config.loss.reg_type
         for method in self.reg_loss_type:
             if method in ['ciou', 'diou', 'giou', 'siou']:
                 self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
@@ -161,3 +161,9 @@ def updata_loss_dict(ori_dict, target_dict):
             ori_dict[key] = target_dict[key]
         else:
             ori_dict[key] += target_dict[key]
+
+def loss_dict_to_str(loss_dict):
+    fin_str = '|| '
+    for key in loss_dict:
+        fin_str += str(key) + ': % 6.2f'%loss_dict[key]+ ' || '
+    return fin_str

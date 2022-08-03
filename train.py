@@ -2,11 +2,23 @@ import sys
 import os
 path = os.getcwd()
 sys.path.append(os.path.join(path,'odcore'))
-from engine.train import Train
-from args import get_args_parser
+from odcore.engine.train import Train
+from odcore.args import get_args_parser
+from config import get_default_cfg
+from modelzoo.build_models import BuildModel
 
 def main(args):
-    print(args)
+    config = get_default_cfg()
+    config.merge_from_file(args.conf_file)
+    config.training.batch_size = args.batch_size
+    builder = BuildModel(config)
+    model = builder.build()
+    if args.device == '0':
+        rank = -1
+    else:
+        raise NotImplementedError
+    train = Train(config,args,model,rank)
+    train.go()
 
 if __name__ == '__main__':
     args = get_args_parser().parse_args()

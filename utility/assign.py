@@ -7,13 +7,13 @@ from utility.anchors import generateAnchors
 class AnchorAssign():
     def __init__(self, config, device):
         self.cfg = config
-        self.anchs = torch.from_numpy(generateAnchors(config,singleBatch=True)).float()
-        self.anchs_len = self.anchs.shape[0]
-        self.assignType = config.model.assignment.lower()
+        self.assignType = config.model.assignment_type.lower()
         self.iou = IOU(ioutype=config.model.assignment_iou_type, dt_type='xywh', gt_type='x1y1wh')
         self.threshold_iou = config.model.assignment_iou_threshold
         self.using_ignored_input = config.data.ignored_input
         self.device = device
+        self.anchs = torch.from_numpy(generateAnchors(config,singleBatch=True)).float().to(device)
+        self.anchs_len = self.anchs.shape[0]
 
     def assign(self, gt):
         '''
@@ -60,19 +60,14 @@ class AnchorAssign():
         ''':return: assign result, real gt(exclude ignored ones), all already to tensor'''
         # initialize assign result
         output_size = (len(gt),self.anchs.shape[0])
-        assign_result = torch.zeros(output_size)
-        if torch.cuda.is_available():
-            assign_result = assign_result.to(self.device)
+        assign_result = torch.zeros(output_size).to(self.device)
 
         # prepare return real gt
         real_gt = []
 
         for ib in range(len(gt)):
-            gt_i = torch.from_numpy(gt[ib]).double()
-            if torch.cuda.is_available():
-                gt_i = gt_i.to(self.device)
-
-            ignored = torch.eq(gt_i[:, 4].int(), 0)
+            gt_i = torch.from_numpy(gt[ib]).to(self.device)
+            ignored = torch.eq(gt_i[:, 4].int(), -1)
             real_gt.append(gt_i[~ignored])
             imgAnn = gt_i[:, :4]
             ignoredAnn = imgAnn[ignored]
@@ -84,13 +79,12 @@ class AnchorAssign():
             # negative: 0
             # ignore: -1
             # positive: index+1
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, iou_max_idx.double() + 2.0,iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou, 0., iou_max_value)
-
-            # Assign at least one anchor to the gt
-            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
+            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, iou_max_idx + 2.0,iou_max_value)
+            iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value.double())
+            iou_max_value = torch.where(iou_max_value < self.threshold_iou, .0, iou_max_value.double())
             iou_max_value = iou_max_value.int()
+            # Assign at least one anchor to the gt
+            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).to(self.device) + 2
 
             # Dealing with ignored area
             if ignoredAnn.shape[0] != 0:
