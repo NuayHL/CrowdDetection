@@ -82,10 +82,10 @@ class AnchorAssign():
             iou_max_value = torch.where(iou_max_value >= self.threshold_iou, iou_max_idx + 2.0,iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value.double())
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, .0, iou_max_value.double())
-            iou_max_value = iou_max_value.int()
-            # Assign at least one anchor to the gt
-            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).to(self.device) + 2
 
+            # Assign at least one anchor to the gt
+            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
+            iou_max_value = iou_max_value.int()
             # Dealing with ignored area
             if ignoredAnn.shape[0] != 0:
                 false_sample_idx = torch.eq(iou_max_value, 1)

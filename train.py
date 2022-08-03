@@ -21,5 +21,6 @@ def main(args):
     train.go()
 
 if __name__ == '__main__':
+    os.environ["CUDA_VISIBLE_DEVICES"] = "1"
     args = get_args_parser().parse_args()
     main(args)

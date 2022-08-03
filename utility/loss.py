@@ -35,7 +35,7 @@ class GeneralLoss():
             losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)
 
         losses['obj'] = self.cls_loss(obj_dt, obj_gt)
-        losses['cls'] = self.cls_loss(cls_dt, obj_gt)
+        losses['cls'] = self.cls_loss(cls_dt, cls_gt)
 
         fin_loss = 0
         for loss in losses.values():
@@ -51,7 +51,7 @@ class FocalBCE():
         self.alpha = config.loss.focal_alpha
         self.gamma = config.loss.focal_gamma
         self.device = device
-        self.baseloss = nn.BCELoss(reduction='sum')
+        self.baseloss = nn.BCEWithLogitsLoss(reduction='sum')
     def __call__(self, dt_cls, gt_cls):
         bceloss = self.baseloss(dt_cls, gt_cls)
         if self.use_focal:

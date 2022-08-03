@@ -29,8 +29,6 @@ class Yolov3(nn.Module):
         p3, p4, p5 = self.neck(p3, p4, p5)
         p3, p4, p5 = self.head(p3, p4, p5)
         dt = self._result_parse((p3, p4, p5))
-        dt[:, 5:, :] = self.softmax(dt[:, 5:, :])
-        dt[:, 4, :] = self.sigmoid(dt[:, 4, :])
         return dt
 
     def set(self, args, device):
@@ -39,7 +37,7 @@ class Yolov3(nn.Module):
         self.assignment = AnchorAssign(self.config, device)
         self.loss = GeneralLoss(self.config, device)
         if self.config.model.use_anchor:
-            self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).to(device)
+            self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
         else:
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
@@ -59,7 +57,7 @@ class Yolov3(nn.Module):
 
             reg_dt_ib = reg_dt[ib, :, label_pos]
             if self.config.model.use_anchor:
-                anch_pos_ib = self.anchs[label_pos]
+                anch_pos_ib = self.anchs[label_pos].t()
                 reg_dt_ib_wh = torch.clamp(reg_dt_ib[2:, :], max=50)
                 reg_dt_ib_x = anch_pos_ib[0] + anch_pos_ib[2] * reg_dt_ib[0, :]
                 reg_dt_ib_y = anch_pos_ib[1] + anch_pos_ib[3] * reg_dt_ib[1, :]
@@ -67,15 +65,17 @@ class Yolov3(nn.Module):
                 reg_dt_ib_h = anch_pos_ib[3] * torch.exp(reg_dt_ib_wh[1, :])
                 reg_dt_ib = torch.stack([reg_dt_ib_x, reg_dt_ib_y, reg_dt_ib_w, reg_dt_ib_h])
 
-            reg_gt_ib = gt_ib[(assign_result_ib[label_pos]-1).int()]
+            label_pos_generate = (assign_result_ib[label_pos] - 1).long()
+            reg_gt_ib = gt_ib[label_pos_generate,:4].t()
 
-            cls_gt_ib = torch.zeros((label_pos.sum(), self.config.training.number_of_class),
-                                      dtype=torch.int64).to(self.device)
-            cls_gt_ib[:, assign_result_ib[label_pos].long() - 1] = 1
+            cls_gt_ib = torch.zeros((self.config.training.number_of_class, label_pos.sum()),
+                                      dtype=torch.float32).to(self.device)
+
+            cls_gt_ib[gt_ib[label_pos_generate,4].long(), :] = 1
             cls_dt_ib = cls_dt[ib, :, label_pos]
 
             label_pos_neg = torch.gt(assign_result_ib, -0.5)
-            obj_dt_ib = obj_dt[ib, :,label_pos_neg]
+            obj_dt_ib = obj_dt[ib, label_pos_neg]
             obj_gt_ib = assign_result_ib[label_pos_neg].clamp(0,1)
 
             loss, lossdict = self.loss(cls_dt_ib, reg_dt_ib, obj_dt_ib,
