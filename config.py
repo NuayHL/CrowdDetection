@@ -25,7 +25,8 @@ c.loss.focal_gamma = 2.0
 
 c.inference = CN()
 c.inference.nms_type = 'nms'
-c.inference.nms_threshold = 0.7
+c.inference.obj_thres = 0.7
+c.inference.iou_thres = 0.7
 
 def get_default_cfg():
     return c.clone()

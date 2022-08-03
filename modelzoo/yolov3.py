@@ -5,6 +5,7 @@ from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
 from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression
+from utility.result import Result
 
 class Yolov3(nn.Module):
     '''4 + 1 + classes'''
@@ -94,9 +95,16 @@ class Yolov3(nn.Module):
             dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
             dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
 
-        result_list = []
-
-        return result_list
+        dt = torch.permute(dt, (0,2,1))
+        if self.config.inference.nms_type == 'nms':
+            result_list = non_max_suppression(dt, conf_thres=self.config.inference.obj_thres,
+                                              iou_thres=self.config.inference.iou_thres)
+        else:
+            raise NotImplementedError
+        fin_result = []
+        for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
+            fin_result.append(Result(result, id, ori_shape))
+        return fin_result
 
     def _result_parse(self, triple):
         '''
