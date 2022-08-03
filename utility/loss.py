@@ -17,7 +17,7 @@ class GeneralLoss():
         self.reg_loss_type = self.config.training.loss.reg_type
         for method in self.reg_loss_type:
             if method in ['ciou', 'diou', 'giou', 'siou']:
-                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='x1y1wh', reduction='sum'))
+                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
             if method in ['l1']:
                 self.reg_loss.append(SmoothL1())
 
@@ -154,3 +154,10 @@ class IOUloss():
         elif self.reduction == 'mean':
             loss = loss.mean()
         return loss
+
+def updata_loss_dict(ori_dict, target_dict):
+    for key in target_dict:
+        if key not in ori_dict:
+            ori_dict[key] = target_dict[key]
+        else:
+            ori_dict[key] += target_dict[key]

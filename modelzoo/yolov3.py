@@ -3,9 +3,11 @@ import torch.nn as nn
 
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
-from utility.loss import GeneralLoss
+from utility.loss import GeneralLoss, updata_loss_dict
+from utility.nms import non_max_suppression
 
 class Yolov3(nn.Module):
+    '''4 + 1 + classes'''
     def __init__(self, config, backbone, neck, head):
         super(Yolov3, self).__init__()
         self.config = config
@@ -13,129 +15,88 @@ class Yolov3(nn.Module):
         self.backbone = backbone
         self.neck = neck
         self.head = head
+        self.softmax = nn.Softmax(dim=1)
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, sample):
         if self.training:
             return self.training_loss(sample)
         else:
             return self.inferencing(sample)
+
     def core(self,input):
         p3, p4, p5 = self.backbone(input)
         p3, p4, p5 = self.neck(p3, p4, p5)
         p3, p4, p5 = self.head(p3, p4, p5)
-        return p3, p4, p5
+        dt = self._result_parse((p3, p4, p5))
+        dt[:, 5:, :] = self.softmax(dt[:, 5:, :])
+        dt[:, 4, :] = self.sigmoid(dt[:, 4, :])
+        return dt
 
     def set(self, args, device):
         self.device = device
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = AnchorAssign(self.config, device)
         self.loss = GeneralLoss(self.config, device)
+        if self.config.model.use_anchor:
+            self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).to(device)
+        else:
+            raise NotImplementedError('Yolov3 do not support anchor free')
+        assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
     def training_loss(self,sample):
-        p3, p4, p5 = self.core(sample['imgs'])
-        dt = self._result_parse((p3,p4,p5))
-
+        dt = self.core(sample['imgs'])
         reg_dt = dt[:, :4,:]
         obj_dt = dt[:, 4, :]
         cls_dt = dt[:, 5:, :]
+        assign_result, gt = self.assignment.assign(sample['annss'])
+        fin_loss = 0
+        fin_loss_dict = {}
+        batch_size = len(gt)
+        for ib in range(len(gt)):
+            assign_result_ib, gt_ib = assign_result[ib], gt[ib]
+            label_pos = torch.gt(assign_result_ib, 0.5)
 
-        for anns_ib in sample['annss']:
-            assign_result = self.assignment.assign(anns_ib)
-            label_pos_neg
+            reg_dt_ib = reg_dt[ib, :, label_pos]
+            if self.config.model.use_anchor:
+                anch_pos_ib = self.anchs[label_pos]
+                reg_dt_ib_wh = torch.clamp(reg_dt_ib[2:, :], max=50)
+                reg_dt_ib_x = anch_pos_ib[0] + anch_pos_ib[2] * reg_dt_ib[0, :]
+                reg_dt_ib_y = anch_pos_ib[1] + anch_pos_ib[3] * reg_dt_ib[1, :]
+                reg_dt_ib_w = anch_pos_ib[2] * torch.exp(reg_dt_ib_wh[0, :])
+                reg_dt_ib_h = anch_pos_ib[3] * torch.exp(reg_dt_ib_wh[1, :])
+                reg_dt_ib = torch.stack([reg_dt_ib_x, reg_dt_ib_y, reg_dt_ib_w, reg_dt_ib_h])
 
+            reg_gt_ib = gt_ib[(assign_result_ib[label_pos]-1).int()]
 
-        if self.useignore:
-            assign_result, gt = self.label_assignment.assign(gt)
-        else:
-            assign_result = self.label_assignment.assign(gt)
+            cls_gt_ib = torch.zeros((label_pos.sum(), self.config.training.number_of_class),
+                                      dtype=torch.int64).to(self.device)
+            cls_gt_ib[:, assign_result_ib[label_pos].long() - 1] = 1
+            cls_dt_ib = cls_dt[ib, :, label_pos]
 
-        cls_dt = torch.clamp(cls_dt, 1e-7, 1.0 - 1e-7)
+            label_pos_neg = torch.gt(assign_result_ib, -0.5)
+            obj_dt_ib = obj_dt[ib, :,label_pos_neg]
+            obj_gt_ib = assign_result_ib[label_pos_neg].clamp(0,1)
 
-        if torch.cuda.is_available():
-            cls_dt = cls_dt.to(self.device)
-            reg_dt = reg_dt.to(self.device)
+            loss, lossdict = self.loss(cls_dt_ib, reg_dt_ib, obj_dt_ib,
+                                       cls_gt_ib, reg_gt_ib, obj_gt_ib)
+            fin_loss += loss
+            updata_loss_dict(fin_loss_dict, lossdict)
+        return fin_loss/batch_size, fin_loss_dict
 
-        # positive: exclude ignored sample
-        # assigned: positive sample
-        for ib in range(self.batch_size):
-            positive_idx_cls = torch.ge(assign_result[ib], -0.1)
-            # the not ignored ones
-            positive_idx_box = torch.ge(assign_result[ib] - 1.0, -0.1)
-            # the assigned ones
-            debug_sum_po = positive_idx_box.sum()
-
-            imgAnn = gt[ib]
-            if not self.useignore:
-                imgAnn = torch.from_numpy(imgAnn).float()
-                if torch.cuda.is_available():
-                    imgAnn = imgAnn.to(self.device)
-
-            assign_result_box = assign_result[ib][positive_idx_box].long() - 1
-            target_anns = imgAnn[assign_result_box]
-
-            # cls loss
-            one_hot_bed = torch.zeros((assign_result.shape[1], self.classes), dtype=torch.int64)
-            if torch.cuda.is_available():
-                one_hot_bed = one_hot_bed.to(self.device)
-
-            one_hot_bed[positive_idx_box, target_anns[:, 4].long() - 1] = 1
-
-            assign_result_cal = one_hot_bed[positive_idx_cls]
-            debug_sum_ = assign_result_cal.sum()
-            cls_dt_cal = cls_dt[ib, :, positive_idx_cls].t()
-
-            cls_loss_ib = - assign_result_cal * torch.log(cls_dt_cal) + \
-                          (assign_result_cal - 1.0) * torch.log(1.0 - cls_dt_cal)
-
-            debug_sum_ib = cls_loss_ib.sum()
-
-            if self.usefocal:
-                if torch.cuda.is_available():
-                    alpha = torch.ones(cls_dt_cal.shape).to(self.device) * self.alpha
-                else:
-                    alpha = torch.ones(cls_dt_cal.shape) * self.alpha
-
-                alpha = torch.where(torch.eq(assign_result_cal, 1.), alpha, 1. - alpha)
-                focal_weight = torch.where(torch.eq(assign_result_cal, 1.), 1 - cls_dt_cal, cls_dt_cal)
-                focal_weight = alpha * torch.pow(focal_weight, self.gamma)
-                cls_fcloss_ib = focal_weight * cls_loss_ib
-            else:
-                cls_fcloss_ib = cls_loss_ib
-
-            cls_loss.append(cls_fcloss_ib.sum() / positive_idx_box.sum())
-
-            # bbox loss
-            anch_w_box = self.anch_w[positive_idx_box]
-            anch_h_box = self.anch_h[positive_idx_box]
-            anch_x_box = self.anch_x[positive_idx_box]
-            anch_y_box = self.anch_y[positive_idx_box]
-
-            reg_dt_assigned = reg_dt[ib, :, positive_idx_box]
-
-            dt_bbox_x = anch_x_box + reg_dt_assigned[0, :] * anch_w_box
-            dt_bbox_y = anch_y_box + reg_dt_assigned[1, :] * anch_h_box
-            reg_dt_assigned_wh = torch.clamp(reg_dt_assigned[2:, :], max=50)
-            dt_bbox_w = anch_w_box * torch.exp(reg_dt_assigned_wh[0, :])
-            dt_bbox_h = anch_h_box * torch.exp(reg_dt_assigned_wh[1, :])
-
-            dt_bbox = torch.stack([dt_bbox_x, dt_bbox_y, dt_bbox_w, dt_bbox_h])
-
-            target_anns[:, 0] += 0.5 * target_anns[:, 2]
-            target_anns[:, 1] += 0.5 * target_anns[:, 3]
-
-            box_regression_loss_ib = self.iouloss(dt_bbox, target_anns.t())
-
-            bbox_loss.append(box_regression_loss_ib / positive_idx_box.sum())
-
-        bbox_loss = torch.stack(bbox_loss)
-        cls_loss = torch.stack(cls_loss)
-        bbox_loss = bbox_loss.sum()
-        cls_loss = cls_loss.sum()
-        # print('cls loss:%.8f'%cls_loss, 'bbox loss:%.4f'%bbox_loss)
-        loss = torch.add(bbox_loss, cls_loss)
-        return loss / self.batch_size
     def inferencing(self, sample):
-        pass
+        dt = self.core(sample['imgs'])
+
+        anchors = torch.tile(self.anchs, (dt.shape[0], 1, 1))
+
+        # restore the predicting bboxes via pre-defined anchors
+        if self.config.model.use_anchor:
+            dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
+            dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
+
+        result_list = []
+
+        return result_list
 
     def _result_parse(self, triple):
         '''
