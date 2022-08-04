@@ -30,12 +30,12 @@ class GeneralLoss():
         gt: list, each is np.array, with shape (4+1) at dim=-1
         '''
         losses = {}
-
+        pos_num_samples = cls_gt.shape[0]
         for i, loss in enumerate(self.reg_loss):
-            losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)
+            losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)/pos_num_samples
 
-        losses['obj'] = self.cls_loss(obj_dt, obj_gt)
-        losses['cls'] = self.cls_loss(cls_dt, cls_gt)
+        losses['obj'] = self.cls_loss(obj_dt, obj_gt)/pos_num_samples
+        losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples
 
         fin_loss = 0
         for loss in losses.values():

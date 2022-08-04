@@ -72,6 +72,9 @@ class AnchorAssign():
             imgAnn = gt_i[:, :4]
             ignoredAnn = imgAnn[ignored]
             imgAnn = imgAnn[~ignored]
+            if imgAnn.shape[0] == 0:
+                assign_result[ib] = torch.zeros(self.anchs.shape[0]).to(self.device)
+                continue
 
             iou_matrix = self.iou(self.anchs, imgAnn)
             iou_max_value, iou_max_idx = torch.max(iou_matrix, dim=1)
