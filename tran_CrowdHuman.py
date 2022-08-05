@@ -65,7 +65,7 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
             if id >= limit_img: break
             img = json.loads(sample)
             h, w, _ = (cv2.imread("CrowdHuman/Images_"+type+"/"+img["ID"]+".jpg")).shape
-            img_info = {"id":img["ID"], "width":w, "height":h, "file_name":img["ID"]}
+            img_info = {"id":img["ID"], "width":w, "height":h, "file_name":img["ID"]+'.jpg'}
             images.append(img_info)
             for bbox in img["gtboxes"]:
                 # find the ignore area

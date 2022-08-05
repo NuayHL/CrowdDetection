@@ -23,6 +23,8 @@ class GeneralLoss():
                 self.reg_loss.append(SmoothL1())
 
         self.cls_loss = FocalBCElogits(self.config, self.device)
+        self.obj_loss = FocalBCElogits(self.config, self.device)
+        self.obj_loss.use_focal = True
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''
@@ -38,8 +40,8 @@ class GeneralLoss():
             if self.reg_loss_type[i] == 'l1':
                 losses['l1'] /= self.l1_coe
 
-        losses['obj'] = self.cls_loss(obj_dt, obj_gt)/no_igorned_num_samples
-        losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples
+        losses['obj'] = self.obj_loss(obj_dt, obj_gt)/no_igorned_num_samples * 10
+        losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses
 
         fin_loss = 0
         for loss in losses.values():
