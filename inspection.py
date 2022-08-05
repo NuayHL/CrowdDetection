@@ -12,12 +12,20 @@ import torch
 
 
 cfg = get_default_cfg()
-cfg.merge_from_file('test_config.yaml')
+cfg.merge_from_file('default_config.yaml')
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style_100.json','CrowdHuman/Images_train',config_data=cfg.data, task='train')
 loader = build_dataloader('CrowdHuman/annotation_train_coco_style_100.json','CrowdHuman/Images_train',config_data=cfg.data,
                           batch_size=1, rank=-1,workers=0, task='train')
-samples = dataset.load_sample(10)
-show_bbox(samples['img'],samples['anns'])
+# samples = dataset.load_sample(10)
+# show_bbox(samples['img'],samples['anns'])
+# letterbox = LetterBox(cfg.data, auto=False, scaleup=True)
+# letterbox(samples)
+# show_bbox(samples['img'],samples['anns'])
+# ra = RandomAffine(cfg.data)
+# ra.img_size = (320,320)
+# ra(samples)
+# show_bbox(samples['img'],samples['anns'])
+
 dataset_inspection(dataset, 10, anntype='xywh')
 dataset_inspection(dataset, 10, anntype='xywh')
 dataset_inspection(dataset, 10, anntype='xywh')
