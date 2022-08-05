@@ -15,8 +15,6 @@ class Yolov3(nn.Module):
         self.backbone = backbone
         self.neck = neck
         self.head = head
-        self.softmax = nn.Softmax(dim=1)
-        self.sigmoid = nn.Sigmoid()
 
     def forward(self, sample):
         if self.training:
@@ -77,6 +75,8 @@ class Yolov3(nn.Module):
             label_pos_neg = torch.gt(assign_result_ib, -0.5)
             obj_dt_ib = obj_dt[ib, label_pos_neg]
             obj_gt_ib = assign_result_ib[label_pos_neg].clamp(0,1)
+
+            # print(label_pos.sum().item(),label_pos_neg.sum().item(),len(self.anchs))
 
             loss, lossdict = self.loss(cls_dt_ib, reg_dt_ib, obj_dt_ib,
                                        cls_gt_ib, reg_gt_ib, obj_gt_ib)

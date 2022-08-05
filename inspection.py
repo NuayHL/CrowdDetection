@@ -26,19 +26,19 @@ loader = build_dataloader('CrowdHuman/annotation_train_coco_style_100.json','Cro
 # ra(samples)
 # show_bbox(samples['img'],samples['anns'])
 
-dataset_inspection(dataset, 10, anntype='xywh')
-dataset_inspection(dataset, 10, anntype='xywh')
-dataset_inspection(dataset, 10, anntype='xywh')
-dataset_inspection(dataset, 10, anntype='xywh')
-# flag = 1
-# while (flag):
-#     for samples in loader:
-#         if flag == 0: break
-#         for idx, anns in enumerate(samples['annss']):
-#             print('fin:',np.greater(anns[:,4], -0.5).sum())
-#             if np.greater(anns[:,4], -0.5).sum() == 0:
-#                 img = samples['imgs'][idx].numpy()
-#                 img = np.transpose(img,(1,2,0))
-#                 show_bbox(img, anns)
-#                 flag = 0
-#                 break
+# dataset_inspection(dataset, 10, anntype='xywh')
+# dataset_inspection(dataset, 10, anntype='xywh')
+# dataset_inspection(dataset, 10, anntype='xywh')
+# dataset_inspection(dataset, 10, anntype='xywh')
+flag = 1
+while (flag):
+    for samples in loader:
+        if flag == 0: break
+        for idx, anns in enumerate(samples['annss']):
+            print('fin:',np.greater(anns[:,4], -0.5).sum())
+            if np.greater(anns[:,4], -0.5).sum() == 0:
+                img = samples['imgs'][idx].numpy()
+                img = np.transpose(img,(1,2,0))
+                show_bbox(img, anns)
+                flag = 0
+                break

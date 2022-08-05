@@ -19,9 +19,10 @@ class GeneralLoss():
             if method in ['ciou', 'diou', 'giou', 'siou']:
                 self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
             if method in ['l1']:
+                self.l1_coe = math.sqrt(self.config.data.input_width*self.config.data.input_height)
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCE(self.config, self.device)
+        self.cls_loss = FocalBCElogits(self.config, self.device)
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''
@@ -30,11 +31,14 @@ class GeneralLoss():
         gt: list, each is np.array, with shape (4+1) at dim=-1
         '''
         losses = {}
-        pos_num_samples = cls_gt.shape[0]
+        pos_num_samples = reg_gt.shape[1]
+        no_igorned_num_samples = obj_gt.shape[0]
         for i, loss in enumerate(self.reg_loss):
             losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)/pos_num_samples
+            if self.reg_loss_type[i] == 'l1':
+                losses['l1'] /= self.l1_coe
 
-        losses['obj'] = self.cls_loss(obj_dt, obj_gt)/pos_num_samples
+        losses['obj'] = self.cls_loss(obj_dt, obj_gt)/no_igorned_num_samples
         losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples
 
         fin_loss = 0
@@ -45,7 +49,7 @@ class GeneralLoss():
 
         return fin_loss, losses
 
-class FocalBCE():
+class FocalBCElogits():
     def __init__(self, config, device):
         self.use_focal = config.loss.use_focal
         self.alpha = config.loss.focal_alpha
