@@ -86,8 +86,8 @@ class Yolov3(nn.Module):
 
     def inferencing(self, sample):
         dt = self.core(sample['imgs'])
-
-        anchors = torch.tile(self.anchs, (dt.shape[0], 1, 1))
+        anchors = self.anchs.t()
+        anchors = torch.tile(anchors, (dt.shape[0], 1, 1))
 
         # restore the predicting bboxes via pre-defined anchors
         if self.config.model.use_anchor:
