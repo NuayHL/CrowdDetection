@@ -30,12 +30,27 @@ class Result():
             fin_list.append(dt_dict)
         return fin_list
 
-    def to_ori_label(self, experiment_input_shape=None):
+    def to_ori_label(self, experiment_input_shape=None, letterboxinput=True):
         if self.result.shape[0] == 0: return np.zeros((1,4))
         outresult = self.result.copy()
         if experiment_input_shape:
-            outresult[:,0] *= self.ori_shape[0]/float(experiment_input_shape[0])
-            outresult[:,2] *= self.ori_shape[0]/float(experiment_input_shape[0])
-            outresult[:,1] *= self.ori_shape[1]/float(experiment_input_shape[1])
-            outresult[:,3] *= self.ori_shape[1]/float(experiment_input_shape[1])
+            if letterboxinput:
+                rw = experiment_input_shape[0]/self.ori_shape[0]
+                rh = experiment_input_shape[1]/self.ori_shape[1]
+                if rh > rw:
+                    r = rw
+                    pad = (experiment_input_shape[1] - self.ori_shape[1] * r) / 2
+                    outresult[:, 1] -= pad
+                    outresult[:, 3] -= pad
+                else:
+                    r = rh
+                    pad = (experiment_input_shape[0] - self.ori_shape[0] * r) / 2
+                    outresult[:, 0] -= pad
+                    outresult[:, 2] -= pad
+                outresult[:, :4] /= r
+            else:
+                outresult[:, 0] *= self.ori_shape[0] / float(experiment_input_shape[0])
+                outresult[:, 2] *= self.ori_shape[0] / float(experiment_input_shape[0])
+                outresult[:, 1] *= self.ori_shape[1] / float(experiment_input_shape[1])
+                outresult[:, 3] *= self.ori_shape[1] / float(experiment_input_shape[1])
         return outresult

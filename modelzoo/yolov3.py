@@ -15,6 +15,7 @@ class Yolov3(nn.Module):
         self.backbone = backbone
         self.neck = neck
         self.head = head
+        self.sigmoid = nn.Sigmoid()
 
     def forward(self, sample):
         if self.training:
@@ -95,6 +96,8 @@ class Yolov3(nn.Module):
         if self.config.model.use_anchor:
             dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
             dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
+
+        dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
 
         dt = torch.permute(dt, (0,2,1))
         if self.config.inference.nms_type == 'nms':
