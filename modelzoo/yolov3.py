@@ -67,7 +67,7 @@ class Yolov3(nn.Module):
             label_pos_generate = (assign_result_ib[label_pos] - 1).long()
             reg_gt_ib = gt_ib[label_pos_generate,:4].t()
 
-            cls_gt_ib = torch.zeros((self.config.training.number_of_class, label_pos.sum()),
+            cls_gt_ib = torch.zeros((self.config.data.numofclasses, label_pos.sum()),
                                       dtype=torch.float32).to(self.device)
 
             cls_gt_ib[gt_ib[label_pos_generate,4].long(), :] = 1
