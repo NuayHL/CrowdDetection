@@ -35,20 +35,25 @@ class GeneralLoss():
         losses = {}
         pos_num_samples = reg_gt.shape[1]
         no_igorned_num_samples = obj_gt.shape[0]
-        for i, loss in enumerate(self.reg_loss):
-            losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)/pos_num_samples
-            if self.reg_loss_type[i] == 'l1':
-                losses['l1'] /= self.l1_coe
+        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / no_igorned_num_samples * 10
+        # if assignment return no positive object
+        if pos_num_samples != 0:
+            for i, loss in enumerate(self.reg_loss):
+                losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)/pos_num_samples
+                if self.reg_loss_type[i] == 'l1':
+                    losses['l1'] /= self.l1_coe
 
-        losses['obj'] = self.obj_loss(obj_dt, obj_gt)/no_igorned_num_samples * 10
-        losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses
-
+            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses
+        else:
+            for loss_name in self.reg_loss_type:
+                losses[loss_name] = 0
+            losses['cls'] = 0
         fin_loss = 0
         for loss in losses.values():
             fin_loss += loss
         for key in losses:
-            losses[key] = losses[key].detach().cpu().item()
-
+            if isinstance(losses[key],torch.Tensor):
+                losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
 class FocalBCElogits():
@@ -57,7 +62,7 @@ class FocalBCElogits():
         self.alpha = config.loss.focal_alpha
         self.gamma = config.loss.focal_gamma
         self.device = device
-        self.baseloss = nn.BCEWithLogitsLoss(reduction='sum')
+        self.baseloss = nn.BCEWithLogitsLoss(reduction='none')
     def __call__(self, dt_cls, gt_cls):
         bceloss = self.baseloss(dt_cls, gt_cls)
         if self.use_focal:
@@ -66,7 +71,7 @@ class FocalBCElogits():
             focal_weight = torch.where(torch.eq(gt_cls, 1.), 1 - dt_cls, dt_cls)
             focal_weight = alpha * torch.pow(focal_weight, self.gamma)
             bceloss *= focal_weight
-        return bceloss
+        return bceloss.sum()
 
 class SmoothL1():
     def __init__(self):

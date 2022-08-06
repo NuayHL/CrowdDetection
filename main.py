@@ -7,12 +7,19 @@ from config import get_default_cfg
 from odcore.args import get_args_parser
 from modelzoo.build_models import BuildModel
 
-cfg = get_default_cfg()
-cfg.merge_from_file('test_config.yaml')
-args = get_args_parser().parse_args()
-builder = BuildModel(cfg)
-model = builder.build()
-model.set(args, 1)
-infer = Infer(cfg, args, model, 1)
-result = infer('IMG/IMG_20220608_140931.jpg')
-print(result)
+
+def main(args):
+    cfg = get_default_cfg()
+    cfg.merge_from_file(args.conf_file)
+
+    builder = BuildModel(cfg)
+    model = builder.build()
+    model.set(args, 0)
+    infer = Infer(cfg, args, model, 0)
+    result = infer(args.img)
+    print(result)
+
+if __name__ == "__main__":
+    args = get_args_parser().parse_args()
+    main(args)
+    a = 'IMG/IMG_20220608_140931.jpg'

@@ -1,3 +1,4 @@
+import torch.nn as nn
 import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
@@ -22,6 +23,8 @@ class BuildModel():
             model_head = model_head(classes, int(p3c * p3c_r))
 
         model = main_model(self.config, backbone=model_backbone(), neck=model_neck(p3c), head=model_head)
+        # weight init
+        model.apply(weight_init)
         return model
 
     def get_model_structure(self):
@@ -29,6 +32,14 @@ class BuildModel():
             return Yolov3
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
+
+def weight_init(m):
+    classname = m.__class__.__name__
+    if 'Conv' in classname:
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+    if 'BatchNorm' in classname:
+        m.weight.data.fill_(1)
+        m.bias.data.zero_()
 
 if __name__ == '__main__':
     import torch
