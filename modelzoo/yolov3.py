@@ -82,6 +82,8 @@ class Yolov3(nn.Module):
                                        cls_gt_ib, reg_gt_ib, obj_gt_ib)
             fin_loss += loss
             updata_loss_dict(fin_loss_dict, lossdict)
+        for key in fin_loss_dict:
+            fin_loss_dict[key] /= batch_size
         return fin_loss/batch_size, fin_loss_dict
 
     def inferencing(self, sample):
