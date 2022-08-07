@@ -15,7 +15,7 @@ class BuildModel():
         model_neck, p3c_r = neck.build_neck(self.config.model.neck.lower())
         model_head = head.build_head(self.config.model.head.lower())
 
-        classes = self.config.training.number_of_class
+        classes = self.config.data.numofclasses
         if self.config.model.use_anchor:
             anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
             model_head = model_head(classes, anchors_per_grid, int(p3c * p3c_r))
