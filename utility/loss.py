@@ -11,6 +11,7 @@ class GeneralLoss():
         self.config = config
         self.device = device
         self.loss_parse()
+        self.loss_weight = config.loss.weight
 
     def loss_parse(self):
         self.reg_loss = []
@@ -22,9 +23,8 @@ class GeneralLoss():
                 self.l1_coe = math.sqrt(self.config.data.input_width*self.config.data.input_height)
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCElogits(self.config, self.device)
-        self.obj_loss = FocalBCElogits(self.config, self.device)
-        self.obj_loss.use_focal = True
+        self.cls_loss = FocalBCE(self.config, self.device)
+        self.obj_loss = FocalBCE(self.config, self.device)
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''
@@ -34,16 +34,15 @@ class GeneralLoss():
         '''
         losses = {}
         pos_num_samples = reg_gt.shape[1]
-        no_igorned_num_samples = obj_gt.shape[0]
-        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / no_igorned_num_samples * 10
+        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / pos_num_samples * self.loss_weight[2]
         # if assignment return no positive object
         if pos_num_samples != 0:
             for i, loss in enumerate(self.reg_loss):
-                losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt)/pos_num_samples
+                losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt) * self.loss_weight[0] / pos_num_samples
                 if self.reg_loss_type[i] == 'l1':
                     losses['l1'] /= self.l1_coe
 
-            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses
+            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses*self.loss_weight[1]
         else:
             for loss_name in self.reg_loss_type:
                 losses[loss_name] = 0
@@ -72,6 +71,37 @@ class FocalBCElogits():
             focal_weight = alpha * torch.pow(focal_weight, self.gamma)
             bceloss *= focal_weight
         return bceloss.sum()
+
+class FocalBCE():
+    def __init__(self, config, device):
+        self.use_focal = config.loss.use_focal
+        self.alpha = config.loss.focal_alpha
+        self.gamma = config.loss.focal_gamma
+        self.device = device
+        self.baseloss = BCElossAmp(reduction='none')
+    def __call__(self, dt_cls, gt_cls):
+        bceloss = self.baseloss(dt_cls, gt_cls)
+        if self.use_focal:
+            alpha = torch.ones(dt_cls.shape).to(self.device) * self.alpha
+            alpha = torch.where(torch.eq(gt_cls, 1.), alpha, 1. - alpha)
+            focal_weight = torch.where(torch.eq(gt_cls, 1.), 1 - dt_cls, dt_cls)
+            focal_weight = alpha * torch.pow(focal_weight, self.gamma)
+            bceloss *= focal_weight
+        return bceloss.sum()
+
+class BCElossAmp():
+    def __init__(self, reduction='none', eps=1e-5):
+        self.eps = eps
+        self.reduction = reduction
+    def __call__(self, dt, gt):
+        dt = dt.clamp(self.eps, 1-self.eps)
+        gt = gt.clamp(0, 1)
+        loss = - gt * torch.log(dt) + (gt - 1.0) * torch.log(1.0 - dt)
+        if self.reduction == 'sum':
+            loss = loss.sum()
+        if self.reduction == 'mean':
+            loss = loss.mean()
+        return loss
 
 class SmoothL1():
     def __init__(self):

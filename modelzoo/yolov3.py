@@ -43,39 +43,35 @@ class Yolov3(nn.Module):
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
+        if self.config.model.use_anchor:
+            anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
+            dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :].clamp(max=50))
+            dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
+        dt[:, 4:, :]  = self.sigmoid(dt[:, 4:, :].clamp(-9.9,9.9))
         reg_dt = dt[:, :4,:]
         obj_dt = dt[:, 4, :]
         cls_dt = dt[:, 5:, :]
         assign_result, gt = self.assignment.assign(sample['annss'])
+
         fin_loss = 0
         fin_loss_dict = {}
         batch_size = len(gt)
         for ib in range(len(gt)):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
-            label_pos = torch.gt(assign_result_ib, 0.5)
-
-            reg_dt_ib = reg_dt[ib, :, label_pos]
-            if self.config.model.use_anchor:
-                anch_pos_ib = self.anchs[label_pos].t()
-                reg_dt_ib_wh = torch.clamp(reg_dt_ib[2:, :], max=50)
-                reg_dt_ib_x = anch_pos_ib[0] + anch_pos_ib[2] * reg_dt_ib[0, :]
-                reg_dt_ib_y = anch_pos_ib[1] + anch_pos_ib[3] * reg_dt_ib[1, :]
-                reg_dt_ib_w = anch_pos_ib[2] * torch.exp(reg_dt_ib_wh[0, :])
-                reg_dt_ib_h = anch_pos_ib[3] * torch.exp(reg_dt_ib_wh[1, :])
-                reg_dt_ib = torch.stack([reg_dt_ib_x, reg_dt_ib_y, reg_dt_ib_w, reg_dt_ib_h])
-
-            label_pos_generate = (assign_result_ib[label_pos] - 1).long()
+            pos_mask = torch.gt(assign_result_ib, 0.5)
+            pos_neg_mask = torch.gt(assign_result_ib, -0.5)
+            reg_dt_ib = reg_dt[ib, :, pos_mask]
+            label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
             reg_gt_ib = gt_ib[label_pos_generate,:4].t()
 
-            cls_gt_ib = torch.zeros((self.config.data.numofclasses, label_pos.sum()),
+            cls_dt_ib = cls_dt[ib, :, pos_neg_mask]
+            label_pos_neg_generate = (assign_result_ib[pos_neg_mask] - 1).long()
+            cls_gt_ib = torch.zeros((self.config.data.numofclasses, pos_neg_mask.sum()),
                                       dtype=torch.float32).to(self.device)
+            cls_gt_ib[gt_ib[label_pos_neg_generate,4].long(), :] = 1
 
-            cls_gt_ib[gt_ib[label_pos_generate,4].long(), :] = 1
-            cls_dt_ib = cls_dt[ib, :, label_pos]
-
-            label_pos_neg = torch.gt(assign_result_ib, -0.5)
-            obj_dt_ib = obj_dt[ib, label_pos_neg]
-            obj_gt_ib = assign_result_ib[label_pos_neg].clamp(0,1)
+            obj_dt_ib = obj_dt[ib, pos_neg_mask]
+            obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0,1)
 
             # print(label_pos.sum().item(),label_pos_neg.sum().item(),len(self.anchs))
 

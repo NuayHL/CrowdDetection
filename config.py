@@ -22,6 +22,7 @@ c.loss.cls_type = 'bce'
 c.loss.use_focal = False
 c.loss.focal_alpha = 0.25
 c.loss.focal_gamma = 2.0
+c.loss.weight = [1.0, 2.0, 3.0]
 
 c.inference = CN()
 c.inference.nms_type = 'nms'
