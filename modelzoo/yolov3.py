@@ -69,7 +69,8 @@ class Yolov3(nn.Module):
             label_pos_neg_generate = (assign_result_ib[pos_neg_mask] - 1).long()
             cls_gt_ib = torch.zeros((self.config.data.numofclasses, pos_neg_mask.sum()),
                                       dtype=torch.float32).to(self.device)
-            cls_gt_ib[gt_ib[label_pos_neg_generate,4].long(), :] = 1
+            if gt_ib.shape[0] != 0:
+                cls_gt_ib[gt_ib[label_pos_neg_generate,4].long(), :] = 1
 
             obj_dt_ib = obj_dt[ib, pos_neg_mask]
             obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0,1)

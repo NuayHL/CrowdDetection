@@ -34,7 +34,8 @@ class GeneralLoss():
         '''
         losses = {}
         pos_num_samples = reg_gt.shape[1]
-        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / pos_num_samples * self.loss_weight[2]
+        pos_neg_num_samples = obj_gt.shape[0]
+        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / pos_neg_num_samples * self.loss_weight[2]
         # if assignment return no positive object
         if pos_num_samples != 0:
             for i, loss in enumerate(self.reg_loss):
@@ -42,7 +43,7 @@ class GeneralLoss():
                 if self.reg_loss_type[i] == 'l1':
                     losses['l1'] /= self.l1_coe
 
-            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_num_samples/self.config.data.numofclasses*self.loss_weight[1]
+            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_neg_num_samples/self.config.data.numofclasses*self.loss_weight[1]
         else:
             for loss_name in self.reg_loss_type:
                 losses[loss_name] = 0
