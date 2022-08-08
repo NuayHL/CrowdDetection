@@ -37,6 +37,7 @@ class Yolov3(nn.Module):
         self.loss = GeneralLoss(self.config, device)
         if self.config.model.use_anchor:
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
+            self.output_number = self.anchs.shape[0]
         else:
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
@@ -61,16 +62,16 @@ class Yolov3(nn.Module):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
+
             reg_dt_ib = reg_dt[ib, :, pos_mask]
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
             reg_gt_ib = gt_ib[label_pos_generate,:4].t()
 
             cls_dt_ib = cls_dt[ib, :, pos_neg_mask]
-            label_pos_neg_generate = (assign_result_ib[pos_neg_mask] - 1).long()
-            cls_gt_ib = torch.zeros((self.config.data.numofclasses, pos_neg_mask.sum()),
+            cls_gt_ib = torch.zeros((self.config.data.numofclasses, self.output_number),
                                       dtype=torch.float32).to(self.device)
-            if gt_ib.shape[0] != 0:
-                cls_gt_ib[gt_ib[label_pos_neg_generate,4].long(), :] = 1
+            cls_gt_ib[gt_ib[label_pos_generate,4].long(), pos_mask] = 1
+            cls_gt_ib = cls_gt_ib[:, pos_neg_mask]
 
             obj_dt_ib = obj_dt[ib, pos_neg_mask]
             obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0,1)
