@@ -36,5 +36,10 @@ def get_default_yaml_templete():
     cfg = get_default_cfg()
     cfg.dump_to_file('default_config')
 
+def updata_config_file(filepath):
+    cfg = get_default_cfg()
+    cfg.merge_from_file(filepath)
+    cfg.dump_to_file(filepath[:-5])
+
 if __name__ == "__main__":
-    get_default_yaml_templete()
+    updata_config_file('test_config.yaml')
