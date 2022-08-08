@@ -43,14 +43,15 @@ class Yolov3(nn.Module):
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
+        dt_ = dt.clone()
         if self.config.model.use_anchor:
             anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
-            dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :].clamp(max=50))
-            dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
-        dt[:, 4:, :]  = self.sigmoid(dt[:, 4:, :].clamp(-9.9,9.9))
-        reg_dt = dt[:, :4,:]
-        obj_dt = dt[:, 4, :]
-        cls_dt = dt[:, 5:, :]
+            dt_[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :].clamp(max=50))
+            dt_[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
+        dt_[:, 4:, :]  = self.sigmoid(dt[:, 4:, :].clamp(-9.9,9.9))
+        reg_dt = dt_[:, :4,:]
+        obj_dt = dt_[:, 4, :]
+        cls_dt = dt_[:, 5:, :]
         assign_result, gt = self.assignment.assign(sample['annss'])
 
         fin_loss = 0
