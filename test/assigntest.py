@@ -1,7 +1,7 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path,'odcore'))
+sys.path.append(os.path.join(path, '../odcore'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
@@ -37,15 +37,3 @@ gt = gt.numpy()
 assign_hot_map(anchors, assign, (640,640), img, gt)
 
 
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-assign_hot_map(anchors, assign, (640,640), img, gt)
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-assign_hot_map(anchors, assign, (640,640), img, gt)

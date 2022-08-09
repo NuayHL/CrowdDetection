@@ -2,6 +2,7 @@
 
 import torch
 import torch.nn as nn
+from copy import deepcopy
 
 class IOU(nn.Module):
     def __init__(self,dt_type="x1y1x2y2", gt_type="x1y1x2y2", ioutype="iou"):
@@ -83,13 +84,15 @@ class IOU(nn.Module):
         pass
 
     def _x1y1wh_to_x1y1x2y2(self, input):
-        input[:, 2] = input[:, 0] + input[:, 2]
-        input[:, 3] = input[:, 1] + input[:, 3]
-        return input
+        input_ = deepcopy(input)
+        input_[:, 2] = input[:, 0] + input[:, 2]
+        input_[:, 3] = input[:, 1] + input[:, 3]
+        return input_
 
     def _xywh_to_x1y1x2y2(self,input):
-        input[:, 0] = input[:,0] - 0.5 * input[:,2]
-        input[:, 1] = input[:,1] - 0.5 * input[:,3]
-        input[:, 2] = input[:,0] + input[:,2]
-        input[:, 3] = input[:,1] + input[:,3]
-        return input
+        input_ = deepcopy(input)
+        input_[:, 0] = input[:,0] - 0.5 * input[:,2]
+        input_[:, 1] = input[:,1] - 0.5 * input[:,3]
+        input_[:, 2] = input_[:,0] + input[:,2]
+        input_[:, 3] = input_[:,1] + input[:,3]
+        return input_
