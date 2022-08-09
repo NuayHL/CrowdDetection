@@ -64,7 +64,7 @@ class Yolov3(nn.Module):
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
             # debuging need to delete in future
-            self._debug_to_file(str(len(gt_ib)), str(pos_mask.sum()))
+            self._debug_to_file(str(len(gt_ib)), str(pos_mask.sum()), str(sample['ids'][ib]))
 
             reg_dt_ib = reg_dt[ib, :, pos_mask]
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
@@ -85,6 +85,7 @@ class Yolov3(nn.Module):
                                        cls_gt_ib, reg_gt_ib, obj_gt_ib)
             fin_loss += loss
             updata_loss_dict(fin_loss_dict, lossdict)
+        self._debug_to_file('////////////////////')
         for key in fin_loss_dict:
             fin_loss_dict[key] /= batch_size
         return fin_loss/batch_size, fin_loss_dict

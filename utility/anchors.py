@@ -3,7 +3,7 @@ import numpy as np
 def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''
     return: batch_size X total_anchor_numbers X 4
-    anchor box type: x1y1x2y2
+    anchor box type: xywh
     singleBatch: set True if only need batchsize at 1
     '''
     if fpnlevels == None:
