@@ -4,6 +4,13 @@ from modelzoo.common import conv_batch
 from modelzoo.common import DarkResidualBlock
 from modelzoo.common import make_layers
 
+def build_backbone(name):
+    '''return backboneClass, output p3c'''
+    if name == 'darknet53':
+        return Darknet53, 256
+    else:
+        raise NotImplementedError('No backbone named %s' % (name))
+
 class Darknet53(nn.Module):
     def __init__(self, res_block=DarkResidualBlock):
         super(Darknet53, self).__init__()
@@ -30,11 +37,5 @@ class Darknet53(nn.Module):
         p5 = self.residual_block5(self.conv6(p4))
         return p3, p4, p5
 
-def build_backbone(name):
-    '''return backboneClass, output p3c'''
-    if name == 'darknet53':
-        return Darknet53, 256
-    else:
-        raise NotImplementedError('No backbone named %s' % (name))
 
 
