@@ -41,6 +41,7 @@ class Yolov3(nn.Module):
         else:
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
+        self.debug = True if args.workers == 1 else False
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
@@ -62,6 +63,8 @@ class Yolov3(nn.Module):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
+
+            self._debug_to_file(str(len(gt_ib)), str(pos_mask.sum()))
 
             reg_dt_ib = reg_dt[ib, :, pos_mask]
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
@@ -121,5 +124,10 @@ class Yolov3(nn.Module):
             split = torch.split(fp, int(fp.shape[1] / self.anchors_per_grid), dim=1)
             out = torch.cat([out]+list(split), dim=2)
         return out
+
+    def _debug_to_file(self, *args,**kwargs):
+        if self.debug:
+            with open('debug.txt', 'a') as f:
+                print(args,kwargs,file=f)
 
 

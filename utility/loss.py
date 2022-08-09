@@ -12,6 +12,7 @@ class GeneralLoss():
         self.device = device
         self.loss_parse()
         self.loss_weight = config.loss.weight
+        self.zero = torch.tensor(0).to(device)
 
     def loss_parse(self):
         self.reg_loss = []
@@ -46,14 +47,14 @@ class GeneralLoss():
             losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_neg_num_samples/self.config.data.numofclasses*self.loss_weight[1]
         else:
             for loss_name in self.reg_loss_type:
-                losses[loss_name] = 0
-            losses['cls'] = 0
+                losses[loss_name] = self.zero
+            losses['cls'] = self.zero
         fin_loss = 0
         for loss in losses.values():
+            loss.clamp_(0, 100)
             fin_loss += loss
         for key in losses:
-            if isinstance(losses[key],torch.Tensor):
-                losses[key] = losses[key].detach().cpu().item()
+            losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
 class FocalBCElogits():

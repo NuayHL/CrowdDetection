@@ -22,7 +22,7 @@ c.loss.cls_type = 'bce'
 c.loss.use_focal = False
 c.loss.focal_alpha = 0.25
 c.loss.focal_gamma = 2.0
-c.loss.weight = [1.0, 2.0, 3.0]
+c.loss.weight = [3.0, 10.0, 5.0] #reg, cls, obj
 
 c.inference = CN()
 c.inference.nms_type = 'nms'
@@ -42,4 +42,4 @@ def updata_config_file(filepath):
     cfg.dump_to_file(filepath[:-5])
 
 if __name__ == "__main__":
-    updata_config_file('test_config.yaml')
+    updata_config_file('yolo_ch.yaml')
