@@ -29,44 +29,23 @@ gt = sample['anns']
 
 anchors = generateAnchors(cfg, singleBatch=True)
 assign_method = AnchorAssign(cfg, 'cpu')
+
 assign ,gt= assign_method.assign([gt])
 assign = assign[0, :]
 gt = gt[0]
 gt = gt.numpy()
-print(assign.sum())
+assign_hot_map(anchors, assign, (640,640), img, gt)
+
+
+
+assign ,gt= assign_method.assign([gt])
+assign = assign[0, :]
+gt = gt[0]
+gt = gt.numpy()
 assign_hot_map(anchors, assign, (640,640), img, gt)
 
 assign ,gt= assign_method.assign([gt])
 assign = assign[0, :]
 gt = gt[0]
 gt = gt.numpy()
-print(assign.sum())
-assign_hot_map(anchors, assign, (640,640), img, gt)
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-print(assign.sum())
-assign_hot_map(anchors, assign, (640,640), img, gt)
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-print(assign.sum())
-assign_hot_map(anchors, assign, (640,640), img, gt)
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-print(assign.sum())
-assign_hot_map(anchors, assign, (640,640), img, gt)
-
-assign ,gt= assign_method.assign([gt])
-assign = assign[0, :]
-gt = gt[0]
-gt = gt.numpy()
-print(assign.sum())
 assign_hot_map(anchors, assign, (640,640), img, gt)

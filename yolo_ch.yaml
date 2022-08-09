@@ -17,7 +17,7 @@ data:
   scale: 0.5
   shear: 0.602
   translate: 0.245
-exp_name: yolo_v3_a3
+exp_name: YOLOv3
 inference:
   iou_thres: 0.7
   nms_type: nms
@@ -26,8 +26,8 @@ loss:
   cls_type: bce
   focal_alpha: 0.25
   focal_gamma: 2.0
-  reg_type: ['siou', 'l1']
-  use_focal: True
+  reg_type: ['giou', 'l1']
+  use_focal: False
   weight: [3.0, 5.0, 5.0]
 model:
   anchor_ratios: [2]
