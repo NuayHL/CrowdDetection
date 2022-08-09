@@ -8,7 +8,7 @@ class AnchorAssign():
     def __init__(self, config, device):
         self.cfg = config
         self.assignType = config.model.assignment_type.lower()
-        self.iou = IOU(ioutype=config.model.assignment_iou_type, dt_type='xywh', gt_type='x1y1wh')
+        self.iou = IOU(ioutype=config.model.assignment_iou_type, dt_type='xywh', gt_type='xywh')
         self.threshold_iou = config.model.assignment_iou_threshold
         self.using_ignored_input = config.data.ignored_input
         self.device = device

@@ -63,7 +63,7 @@ class Yolov3(nn.Module):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
-
+            # debuging need to delete in future
             self._debug_to_file(str(len(gt_ib)), str(pos_mask.sum()))
 
             reg_dt_ib = reg_dt[ib, :, pos_mask]

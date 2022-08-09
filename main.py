@@ -1,11 +1,25 @@
+import os
+import sys
+path = os.getcwd()
+sys.path.append(os.path.join(path,'odcore'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
-from utility.loss import BCElossAmp
+from odcore.utils.visualization import draw_loss, assign_visualization
+from odcore.data.dataset import CocoDataset
+from config import get_default_cfg
+from utility.assign import AnchorAssign
+from utility.anchors import generateAnchors
 
-loss = BCElossAmp()
+cfg = get_default_cfg()
+cfg.merge_from_file('letterbox.yaml')
 
-a = t([1,0,1,0], dtype=torch.float)
-b = t([1,1,0,0], dtype=torch.float)
+dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg, 'train')
+sample = dataset[1000]
 
-print(loss(a,b))
+img = sample['img']
+gt = sample['anns']
+
+anchors = generateAnchors(cfg, singleBatch=True)
+assign_method = AnchorAssign(cfg, 'cpu')
+assign = assign_method.assign(gt)
