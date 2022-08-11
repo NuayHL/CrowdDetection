@@ -41,7 +41,6 @@ class Yolov3(nn.Module):
         else:
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
-        self.debug = True if args.workers == 1 else False
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
@@ -98,7 +97,8 @@ class Yolov3(nn.Module):
             dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
             dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
 
-        dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
+        # dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
+        dt[:, 4:, :] = dt[:, 4:, :].clamp(0,1)
 
         dt = torch.permute(dt, (0,2,1))
         if self.config.inference.nms_type == 'nms':
@@ -123,10 +123,5 @@ class Yolov3(nn.Module):
             split = torch.split(fp, int(fp.shape[1] / self.anchors_per_grid), dim=1)
             out = torch.cat([out]+list(split), dim=2)
         return out
-
-    def _debug_to_file(self, *args,**kwargs):
-        if self.debug:
-            with open('debug.txt', 'a') as f:
-                print(args,kwargs,file=f)
 
 

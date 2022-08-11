@@ -31,7 +31,7 @@ class Result():
         return fin_list
 
     def to_ori_label(self, experiment_input_shape=None, letterboxinput=True):
-        if self.result.shape[0] == 0: return np.zeros((1,4))
+        if self.result.shape[0] == 0: return np.zeros((1,5))
         outresult = self.result.copy()
         if experiment_input_shape:
             if letterboxinput:
