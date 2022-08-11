@@ -33,7 +33,7 @@ class GeneralLoss():
         losses = {}
         pos_num_samples = dt_list[0].shape[1]
         pos_neg_num_samples = dt_list[-1].shape[1]
-        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) / pos_neg_num_samples * self.loss_weight[-1]
+        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) / pos_num_samples * self.loss_weight[-1]
         if pos_num_samples != 0:
             for loss, loss_name, loss_weight, reg_gt, reg_dt in \
                     zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
@@ -49,35 +49,35 @@ class GeneralLoss():
             losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
-    def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
-        '''
-        dt: The input dt should be the same format as assign result
-            i.e.  Tensor: Batchsize X (4+1+classes) X samples
-        gt: list, each is np.array, with shape (4+1) at dim=-1
-        '''
-        losses = {}
-        pos_num_samples = reg_gt.shape[1]
-        pos_neg_num_samples = obj_gt.shape[0]
-        losses['obj'] = self.obj_loss(obj_dt, obj_gt) / pos_neg_num_samples * self.loss_weight[2]
-        # if assignment return no positive object
-        if pos_num_samples != 0:
-            for i, loss in enumerate(self.reg_loss):
-                losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt) * self.loss_weight[0] / pos_num_samples
-                if self.reg_loss_type[i] == 'l1':
-                    losses['l1'] /= self.l1_coe
-
-            losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_neg_num_samples/self.config.data.numofclasses*self.loss_weight[1]
-        else:
-            for loss_name in self.reg_loss_type:
-                losses[loss_name] = self.zero
-            losses['cls'] = self.zero
-        fin_loss = 0
-        for loss in losses.values():
-            loss.clamp_(0, 100)
-            fin_loss += loss
-        for key in losses:
-            losses[key] = losses[key].detach().cpu().item()
-        return fin_loss, losses
+    # def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
+    #     '''
+    #     dt: The input dt should be the same format as assign result
+    #         i.e.  Tensor: Batchsize X (4+1+classes) X samples
+    #     gt: list, each is np.array, with shape (4+1) at dim=-1
+    #     '''
+    #     losses = {}
+    #     pos_num_samples = reg_gt.shape[1]
+    #     pos_neg_num_samples = obj_gt.shape[0]
+    #     losses['obj'] = self.obj_loss(obj_dt, obj_gt) / pos_neg_num_samples * self.loss_weight[2]
+    #     # if assignment return no positive object
+    #     if pos_num_samples != 0:
+    #         for i, loss in enumerate(self.reg_loss):
+    #             losses[self.reg_loss_type[i]] = loss(reg_dt, reg_gt) * self.loss_weight[0] / pos_num_samples
+    #             if self.reg_loss_type[i] == 'l1':
+    #                 losses['l1'] /= self.l1_coe
+    #
+    #         losses['cls'] = self.cls_loss(cls_dt, cls_gt)/pos_neg_num_samples/self.config.data.numofclasses*self.loss_weight[1]
+    #     else:
+    #         for loss_name in self.reg_loss_type:
+    #             losses[loss_name] = self.zero
+    #         losses['cls'] = self.zero
+    #     fin_loss = 0
+    #     for loss in losses.values():
+    #         loss.clamp_(0, 100)
+    #         fin_loss += loss
+    #     for key in losses:
+    #         losses[key] = losses[key].detach().cpu().item()
+    #     return fin_loss, losses
 
 class FocalBCElogits():
     def __init__(self, config, device):

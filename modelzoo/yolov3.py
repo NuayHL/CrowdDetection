@@ -76,8 +76,8 @@ class Yolov3(nn.Module):
             if self.l1_loss:
                 l1_dt_ib = dt[ib, :4, pos_mask]
                 l1_gt_ib = gt_ib[label_pos_generate, :4]
-                l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[:, 2:])
-                l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - anchors[:, :2]) / anchors[:, 2:]
+                l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
+                l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
                 l1_gt_ib = l1_gt_ib.t()
                 dt_list.append(l1_dt_ib)
                 gt_list.append(l1_gt_ib)
