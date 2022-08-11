@@ -49,7 +49,7 @@ class Yolov3(nn.Module):
             anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
             dt_[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :].clamp(max=50))
             dt_[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
-        dt_[:, 4:, :] = self.sigmoid(dt[:, 4:, :].clamp(-9.9,9.9))
+        dt_[:, 4:, :] = dt_[:, 4:, :].clamp_(-9.9,9.9)
         reg_dt = dt_[:, :4, :]
         obj_dt = dt_[:, 4, :]
         cls_dt = dt_[:, 5:, :]
@@ -97,8 +97,7 @@ class Yolov3(nn.Module):
             dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
             dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
 
-        # dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
-        dt[:, 4:, :] = dt[:, 4:, :].clamp(0,1)
+        dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
 
         dt = torch.permute(dt, (0,2,1))
         if self.config.inference.nms_type == 'nms':
@@ -123,5 +122,10 @@ class Yolov3(nn.Module):
             split = torch.split(fp, int(fp.shape[1] / self.anchors_per_grid), dim=1)
             out = torch.cat([out]+list(split), dim=2)
         return out
+
+    def _debug_to_file(self, *args,**kwargs):
+        if self.debug:
+            with open('debug.txt', 'a') as f:
+                print(args,kwargs,file=f)
 
 

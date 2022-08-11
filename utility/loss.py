@@ -24,8 +24,8 @@ class GeneralLoss():
                 self.l1_coe = math.sqrt(self.config.data.input_width*self.config.data.input_height)
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCE(self.config, self.device)
-        self.obj_loss = FocalBCE(self.config, self.device)
+        self.cls_loss = FocalBCElogits(self.config, self.device)
+        self.obj_loss = FocalBCElogits(self.config, self.device)
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''
