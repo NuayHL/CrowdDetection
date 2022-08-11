@@ -21,11 +21,33 @@ class GeneralLoss():
             if method in ['ciou', 'diou', 'giou', 'siou']:
                 self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
             if method in ['l1']:
-                self.l1_coe = math.sqrt(self.config.data.input_width*self.config.data.input_height)
                 self.reg_loss.append(SmoothL1())
 
         self.cls_loss = FocalBCElogits(self.config, self.device)
-        self.obj_loss = FocalBCElogits(self.config, self.device)
+
+    def __call__(self, dt_list, gt_list):
+        '''
+        dt_list:[reg_loss,..., cls_loss]
+        gt_list:[reg_loss,..., cls_loss]
+        '''
+        losses = {}
+        pos_num_samples = dt_list[0].shape[1]
+        pos_neg_num_samples = dt_list[-1].shape[1]
+        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) / pos_neg_num_samples * self.loss_weight[-1]
+        if pos_num_samples != 0:
+            for loss, loss_name, loss_weight, reg_gt, reg_dt in \
+                    zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
+                losses[loss_name] = loss(reg_dt,reg_gt) / pos_num_samples * loss_weight
+        else:
+            for loss_name in self.reg_loss_type:
+                losses[loss_name] = self.zero
+        fin_loss = 0
+        for loss in losses.values():
+            loss.clamp_(0, 100)
+            fin_loss += loss
+        for key in losses:
+            losses[key] = losses[key].detach().cpu().item()
+        return fin_loss, losses
 
     def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
         '''

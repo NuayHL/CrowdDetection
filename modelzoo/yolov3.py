@@ -42,47 +42,59 @@ class Yolov3(nn.Module):
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
+        self.l1_loss = False
+        self.iou_loss = False
+        for type in self.config.loss.reg_type:
+            if 'l1' in type: self.l1_loss = True
+            if 'iou' in type: self.iou_loss = True
+
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
-        dt_ = dt.clone()
-        if self.config.model.use_anchor:
-            anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
-            dt_[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :].clamp(max=50))
-            dt_[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
-        dt_[:, 4:, :] = dt_[:, 4:, :].clamp_(-9.9,9.9)
-        reg_dt = dt_[:, :4, :]
-        obj_dt = dt_[:, 4, :]
-        cls_dt = dt_[:, 5:, :]
+        anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
+        cls_dt = dt[:, 4:, :].clamp(-9.9,9.9)
+        if self.iou_loss:
+            dt_for_iou = dt[:, :4].clone()
+            dt_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(dt[:, 2:4].clamp(max=50))
+            dt_for_iou[:, :2] = anchors[:, :2] + dt[:, :2] * anchors[:, 2:]
         assign_result, gt = self.assignment.assign(sample['annss'])
 
         fin_loss = 0
         fin_loss_dict = {}
         batch_size = len(gt)
         for ib in range(len(gt)):
+            dt_list = []
+            gt_list = []
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
-
-            reg_dt_ib = reg_dt[ib, :, pos_mask]
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
-            reg_gt_ib = gt_ib[label_pos_generate,:4].t()
+            if self.iou_loss:
+                iou_dt_ib = dt_for_iou[ib, :, pos_mask]
+                iou_gt_ib = gt_ib[label_pos_generate, :4].t()
+                dt_list.append(iou_dt_ib)
+                gt_list.append(iou_gt_ib)
+            if self.l1_loss:
+                l1_dt_ib = dt[ib, :4, pos_mask]
+                l1_gt_ib = gt_ib[label_pos_generate, :4]
+                l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[:, 2:])
+                l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - anchors[:, :2]) / anchors[:, 2:]
+                l1_gt_ib = l1_gt_ib.t()
+                dt_list.append(l1_dt_ib)
+                gt_list.append(l1_gt_ib)
 
-            cls_dt_ib = cls_dt[ib, :, pos_neg_mask]
+            cls_all_dt_ib = cls_dt[ib, :, pos_neg_mask]
             cls_gt_ib = torch.zeros((self.config.data.numofclasses, self.output_number),
                                       dtype=torch.float32).to(self.device)
             cls_gt_ib[gt_ib[label_pos_generate,4].long(), pos_mask] = 1
             cls_gt_ib = cls_gt_ib[:, pos_neg_mask]
+            obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0, 1)
+            cls_all_gt_ib = torch.cat([obj_gt_ib.unsqueeze(0), cls_gt_ib], 0)
+            dt_list.append(cls_all_dt_ib)
+            gt_list.append(cls_all_gt_ib)
 
-            obj_dt_ib = obj_dt[ib, pos_neg_mask]
-            obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0,1)
-
-            # print(label_pos.sum().item(),label_pos_neg.sum().item(),len(self.anchs))
-
-            loss, lossdict = self.loss(cls_dt_ib, reg_dt_ib, obj_dt_ib,
-                                       cls_gt_ib, reg_gt_ib, obj_gt_ib)
+            loss, lossdict = self.loss(dt_list, gt_list)
             fin_loss += loss
             updata_loss_dict(fin_loss_dict, lossdict)
-        self._debug_to_file('////////////////////')
         for key in fin_loss_dict:
             fin_loss_dict[key] /= batch_size
         return fin_loss/batch_size, fin_loss_dict
