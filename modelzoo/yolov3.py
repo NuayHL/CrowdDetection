@@ -42,11 +42,10 @@ class Yolov3(nn.Module):
             raise NotImplementedError('Yolov3 do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
-        self.l1_loss = False
-        self.iou_loss = False
+        self.loss_order = []
         for type in self.config.loss.reg_type:
-            if 'l1' in type: self.l1_loss = True
-            if 'iou' in type: self.iou_loss = True
+            if 'l1' in type: self.loss_order.append('l1')
+            if 'iou' in type: self.loss_order.append('iou')
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
@@ -68,20 +67,20 @@ class Yolov3(nn.Module):
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
-            if self.iou_loss:
-                iou_dt_ib = dt_for_iou[ib, :, pos_mask]
-                iou_gt_ib = gt_ib[label_pos_generate, :4].t()
-                dt_list.append(iou_dt_ib)
-                gt_list.append(iou_gt_ib)
-            if self.l1_loss:
-                l1_dt_ib = dt[ib, :4, pos_mask]
-                l1_gt_ib = gt_ib[label_pos_generate, :4]
-                l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
-                l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
-                l1_gt_ib = l1_gt_ib.t()
-                dt_list.append(l1_dt_ib)
-                gt_list.append(l1_gt_ib)
-
+            for loss_type in self.loss_order:
+                if loss_type is 'iou':
+                    iou_dt_ib = dt_for_iou[ib, :, pos_mask]
+                    iou_gt_ib = gt_ib[label_pos_generate, :4].t()
+                    dt_list.append(iou_dt_ib)
+                    gt_list.append(iou_gt_ib)
+                else:
+                    l1_dt_ib = dt[ib, :4, pos_mask]
+                    l1_gt_ib = gt_ib[label_pos_generate, :4]
+                    l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
+                    l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
+                    l1_gt_ib = l1_gt_ib.t()
+                    dt_list.append(l1_dt_ib)
+                    gt_list.append(l1_gt_ib)
             cls_all_dt_ib = cls_dt[ib, :, pos_neg_mask]
             cls_gt_ib = torch.zeros((self.config.data.numofclasses, self.output_number),
                                       dtype=torch.float32).to(self.device)

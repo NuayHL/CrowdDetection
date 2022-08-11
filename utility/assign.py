@@ -59,7 +59,7 @@ class AnchorAssign():
             iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
             assign_result[ib] = iou_max_value-1
 
-        return assign_result
+        return assign_result, gt
 
     def _retinaAssign_using_ignored(self,gt):
         ''':return: assign result, real gt(exclude ignored ones), all already to tensor'''
