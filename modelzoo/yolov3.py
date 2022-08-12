@@ -68,7 +68,7 @@ class Yolov3(nn.Module):
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
             for loss_type in self.loss_order:
-                if loss_type is 'iou':
+                if loss_type == 'iou':
                     iou_dt_ib = dt_for_iou[ib, :, pos_mask]
                     iou_gt_ib = gt_ib[label_pos_generate, :4].t()
                     dt_list.append(iou_dt_ib)
