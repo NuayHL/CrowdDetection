@@ -46,7 +46,7 @@ training:
   eval_interval: 20
   final_epoch: 200
   optimizer:
-    lr: 0.001
+    lr: 0.002
     momentum: 0.937
     type: adam
     weight_decay: 0.0005

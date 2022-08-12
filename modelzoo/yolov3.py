@@ -96,7 +96,7 @@ class Yolov3(nn.Module):
         for key in fin_loss_dict:
             fin_loss_dict[key] /= num_pos_samples
             fin_loss += fin_loss_dict[key]
-            fin_loss_dict[key] = fin_loss_dict[key].detach().item()
+            fin_loss_dict[key] = fin_loss_dict[key].clone().detach().cpu().item()
         return fin_loss, fin_loss_dict
 
     def inferencing(self, sample):
