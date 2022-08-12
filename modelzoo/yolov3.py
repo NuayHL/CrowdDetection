@@ -51,7 +51,7 @@ class Yolov3(nn.Module):
         dt = self.core(sample['imgs'])
         anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
         cls_dt = dt[:, 4:, :].clamp(-9.9,9.9)
-        if self.iou_loss:
+        if 'iou' in self.loss_order:
             dt_for_iou = dt[:, :4].clone()
             dt_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(dt[:, 2:4].clamp(max=50))
             dt_for_iou[:, :2] = anchors[:, :2] + dt[:, :2] * anchors[:, 2:]
