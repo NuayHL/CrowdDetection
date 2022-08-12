@@ -23,7 +23,7 @@ class GeneralLoss():
             if method in ['l1']:
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCElogits(self.config, self.device)
+        self.cls_loss = FocalBCE(self.config, self.device)
 
     def __call__(self, dt_list, gt_list):
         '''
@@ -37,13 +37,13 @@ class GeneralLoss():
         if pos_num_samples != 0:
             for loss, loss_name, loss_weight, reg_gt, reg_dt in \
                     zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
-                losses[loss_name] = loss(reg_dt,reg_gt) / pos_num_samples * loss_weight
+                losses[loss_name] = loss(reg_dt,reg_gt) * loss_weight
         else:
             for loss_name in self.reg_loss_type:
                 losses[loss_name] = self.zero
         fin_loss = 0
         for loss in losses.values():
-            loss.clamp_(0, 100)
+            loss.clamp_(0, 200)
             fin_loss += loss
         for key in losses:
             losses[key] = losses[key].detach().cpu().item()
