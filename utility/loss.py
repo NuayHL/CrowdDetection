@@ -41,7 +41,12 @@ class GeneralLoss():
         else:
             for loss_name in self.reg_loss_type:
                 losses[loss_name] = self.zero
-        return losses
+        fin_loss = 0
+        for loss in losses.values():
+            fin_loss += loss
+        for key in losses:
+            losses[key] = losses[key].detach().cpu().item()
+        return fin_loss, losses
 
     # def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
     #     '''

@@ -91,13 +91,13 @@ class Yolov3(nn.Module):
             cls_all_gt_ib = torch.cat([obj_gt_ib.unsqueeze(0), cls_gt_ib], 0)
             dt_list.append(cls_all_dt_ib)
             gt_list.append(cls_all_gt_ib)
-            lossdict = self.loss(dt_list, gt_list)
+
+            loss, lossdict = self.loss(dt_list, gt_list)
+            fin_loss += loss
             updata_loss_dict(fin_loss_dict, lossdict)
         for key in fin_loss_dict:
             fin_loss_dict[key] /= num_pos_samples
-            fin_loss += fin_loss_dict[key]
-            fin_loss_dict[key] = fin_loss_dict[key].clone().detach().cpu().item()
-        return fin_loss, fin_loss_dict
+        return fin_loss/num_pos_samples, fin_loss_dict
 
     def inferencing(self, sample):
         dt = self.core(sample['imgs'])
