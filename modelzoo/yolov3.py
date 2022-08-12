@@ -59,13 +59,14 @@ class Yolov3(nn.Module):
 
         fin_loss = 0
         fin_loss_dict = {}
-        batch_size = len(gt)
+        num_pos_samples = 0
         for ib in range(len(gt)):
             dt_list = []
             gt_list = []
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
+            num_pos_samples += pos_mask.sum()
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
             for loss_type in self.loss_order:
                 if loss_type == 'iou':
@@ -90,13 +91,13 @@ class Yolov3(nn.Module):
             cls_all_gt_ib = torch.cat([obj_gt_ib.unsqueeze(0), cls_gt_ib], 0)
             dt_list.append(cls_all_dt_ib)
             gt_list.append(cls_all_gt_ib)
-
-            loss, lossdict = self.loss(dt_list, gt_list)
-            fin_loss += loss
+            lossdict = self.loss(dt_list, gt_list)
             updata_loss_dict(fin_loss_dict, lossdict)
         for key in fin_loss_dict:
-            fin_loss_dict[key] /= batch_size
-        return fin_loss/batch_size, fin_loss_dict
+            fin_loss_dict[key] /= num_pos_samples
+            fin_loss += fin_loss_dict[key]
+            fin_loss_dict[key] = fin_loss_dict[key].detach().item()
+        return fin_loss, fin_loss_dict
 
     def inferencing(self, sample):
         dt = self.core(sample['imgs'])

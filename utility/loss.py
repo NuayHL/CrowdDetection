@@ -12,7 +12,7 @@ class GeneralLoss():
         self.device = device
         self.loss_parse()
         self.loss_weight = config.loss.weight
-        self.zero = torch.tensor(0).to(device)
+        self.zero = torch.tensor(0, dtype=torch.float32).to(device)
 
     def loss_parse(self):
         self.reg_loss = []
@@ -32,8 +32,8 @@ class GeneralLoss():
         '''
         losses = {}
         pos_num_samples = dt_list[0].shape[1]
-        pos_neg_num_samples = dt_list[-1].shape[1]
-        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) / pos_num_samples * self.loss_weight[-1]
+        # pos_neg_num_samples = dt_list[-1].shape[1]
+        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) * self.loss_weight[-1]
         if pos_num_samples != 0:
             for loss, loss_name, loss_weight, reg_gt, reg_dt in \
                     zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
@@ -41,13 +41,7 @@ class GeneralLoss():
         else:
             for loss_name in self.reg_loss_type:
                 losses[loss_name] = self.zero
-        fin_loss = 0
-        for loss in losses.values():
-            loss.clamp_(0, 200)
-            fin_loss += loss
-        for key in losses:
-            losses[key] = losses[key].detach().cpu().item()
-        return fin_loss, losses
+        return losses
 
     # def __call__(self, cls_dt, reg_dt, obj_dt, cls_gt, reg_gt, obj_gt):
     #     '''

@@ -2,7 +2,7 @@ data:
   annotation_format: x1y1wh
   degrees: 0.373
   fliplr: 0.5
-  flipud: 0.00856
+  flipud: 0.0
   hsv_h: 0.0138
   hsv_s: 0.664
   hsv_v: 0.464
@@ -28,10 +28,10 @@ loss:
   focal_gamma: 2.0
   reg_type: ['siou', 'l1']
   use_focal: False
-  weight: [0.4, 0.3, 1.0]
+  weight: [5.0, 5.0, 0.2]
 model:
-  anchor_ratios: [2]
-  anchor_scales: [0.75, 1, 1.25]
+  anchor_ratios: [2, 3]
+  anchor_scales: [0.75, 1]
   assignment_iou_threshold: 0.5
   assignment_iou_type: iou
   assignment_type: default
@@ -46,15 +46,15 @@ training:
   eval_interval: 20
   final_epoch: 200
   optimizer:
-    lr: 0.005
+    lr: 0.001
     momentum: 0.937
-    type: SGD
+    type: adam
     weight_decay: 0.0005
   schedular:
     lrf: 0.01
     type: cosine
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train
-  val_img_anns_path: 
-  val_img_path: 
+  val_img_anns_path: ''
+  val_img_path: ''
   workers: 4
