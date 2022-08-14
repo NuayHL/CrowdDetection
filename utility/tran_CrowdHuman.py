@@ -1,5 +1,10 @@
+import os
+import sys
+path = os.getcwd()
+sys.path.append(os.path.join(path, '../odcore'))
 import json
 import cv2
+from odcore.data.dataset import check_anno_bbox
 
 def progressbar(percentage, endstr='', barlenth=20):
     if int(percentage)==1: endstr +='\n'
@@ -52,7 +57,7 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
     info = dict()
     images = []
     annotations = []
-    categories = json.load(open("CrowdHuman/categories_coco.json"))
+    categories = [{"supercategory": "person", "id": 0, "name": "person"}]
 
     info["year"] = 2018
     print("begin convert %s dataset annotations to coco format"%type)
@@ -100,5 +105,6 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
 
 if __name__ == '__main__':
     odgt2coco("CrowdHuman/annotation_val.odgt", "annotation_val_coco_style", "val")
+    check_anno_bbox('CrowdHuman/annotation_val_coco_style.json')
     #odgt2coco("CrowdHuman/annotation_train.odgt","annotation_train_coco_style","train")
 

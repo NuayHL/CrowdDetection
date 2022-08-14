@@ -19,7 +19,7 @@ def main(args):
     model.set(args, 0)
     infer = Infer(cfg, args, model, 0)
     result, img = infer(args.img)
-    result = result[0].to_ori_label(experiment_input_shape = (cfg.data.input_width, cfg.data.input_height))
+    result = result[0].to_ori_label()
     for i in result[:,4]:
         print('score:', i)
     show_bbox(img, result, type='x1y1x2y2')

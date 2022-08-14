@@ -16,6 +16,7 @@ class Yolov3(nn.Module):
         self.neck = neck
         self.head = head
         self.sigmoid = nn.Sigmoid()
+        self.input_shape = (self.config.data.input_width, self.config.data.input_height)
 
     def forward(self, sample):
         if self.training:
@@ -120,7 +121,7 @@ class Yolov3(nn.Module):
             raise NotImplementedError
         fin_result = []
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
-            fin_result.append(Result(result, id, ori_shape))
+            fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
 
     def _result_parse(self, triple):
