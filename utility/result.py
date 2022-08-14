@@ -12,16 +12,12 @@ class Result():
         self.result = result.detach().cpu().numpy()
         self.id = id
         self.ori_shape = shape #(w, h)
-    def to_list(self, experiment_input_shape=None):
+    def to_list_for_json(self, experiment_input_shape=None, letterboxinput=True):
         '''experiment_input_shape: indicating the input of network to restore the size'''
         fin_list = []
         if self.result.shape[0] == 0: return fin_list
-        if experiment_input_shape:
-            self.result[:,0] *= self.ori_shape[0]/float(experiment_input_shape[0])
-            self.result[:,2] *= self.ori_shape[0]/float(experiment_input_shape[0])
-            self.result[:,1] *= self.ori_shape[1]/float(experiment_input_shape[1])
-            self.result[:,3] *= self.ori_shape[1]/float(experiment_input_shape[1])
-        for dt in self.result:
+        outresult = self.to_ori_label(experiment_input_shape, letterboxinput)
+        for dt in outresult:
             dt_dict = {}
             dt_dict['image_id'] = self.id
             dt_dict['category_id'] = dt[5]
@@ -29,7 +25,6 @@ class Result():
             dt_dict['score'] = dt[4]
             fin_list.append(dt_dict)
         return fin_list
-
     def to_ori_label(self, experiment_input_shape=None, letterboxinput=True):
         if self.result.shape[0] == 0: return np.zeros((1,5))
         outresult = self.result.copy()
