@@ -10,8 +10,10 @@ from modelzoo.build_models import BuildModel
 
 
 def main(args):
+    assert os.path.exists(args.img),'Invalid image path'
     cfg = get_default_cfg()
     cfg.merge_from_file(args.conf_file)
+    os.environ["CUDA_VISIBLE_DEVICES"] = args.device
     builder = BuildModel(cfg)
     model = builder.build()
     model.set(args, 0)
@@ -26,4 +28,3 @@ def main(args):
 if __name__ == "__main__":
     args = get_infer_args_parser().parse_args()
     main(args)
-    a = 'IMG/IMG_20220609_141503.jpg'

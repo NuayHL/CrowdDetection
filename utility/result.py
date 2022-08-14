@@ -49,3 +49,6 @@ class Result():
                 outresult[:, 1] *= self.ori_shape[1] / float(experiment_input_shape[1])
                 outresult[:, 3] *= self.ori_shape[1] / float(experiment_input_shape[1])
         return outresult
+
+def result_parse(result: Result):
+    return result.to_list_for_json()
