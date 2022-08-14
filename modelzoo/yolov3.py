@@ -7,6 +7,9 @@ from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
 
+# model.set(args, device)
+# model.coco_parse_result(results) results: List of prediction
+
 class Yolov3(nn.Module):
     '''4 + 1 + classes'''
     def __init__(self, config, backbone, neck, head):
@@ -123,6 +126,10 @@ class Yolov3(nn.Module):
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
+
+    @staticmethod
+    def coco_parse_result(results):
+        return Result.result_parse_for_json(results)
 
     def _result_parse(self, triple):
         '''

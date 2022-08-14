@@ -56,8 +56,9 @@ class Result():
                 outresult[:, 3] *= self.ori_shape[1] / float(self.input_shape[1])
         return outresult
 
-def result_parse(results: Result):
-    result_list = []
-    for result in results:
-        result_list.extend(result.to_list_for_json())
-    return result_list
+    @staticmethod
+    def result_parse_for_json(results):
+        result_list = []
+        for result in results:
+            result_list.extend(result.to_list_for_json())
+        return result_list

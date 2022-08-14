@@ -5,7 +5,6 @@ sys.path.append(os.path.join(path,'odcore'))
 from odcore.engine.eval import Eval
 from config import get_default_cfg
 from odcore.args import get_eval_args_parser
-from utility.result import result_parse
 from modelzoo.build_models import BuildModel
 
 def main(args):
@@ -16,7 +15,7 @@ def main(args):
     model = builder.build()
     model.set(args, 0)
     eval = Eval(cfg, args, model, 0)
-    eval.eval(result_parse,args.force_eval)
+    eval.eval(force_eval=args.force_eval)
 
 if __name__ == "__main__":
     args = get_eval_args_parser().parse_args()
