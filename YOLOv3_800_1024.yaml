@@ -21,7 +21,7 @@ exp_name: YOLOv3
 inference:
   iou_thres: 0.6
   nms_type: nms
-  obj_thres: 0.7
+  obj_thres: 0.55
 loss:
   cls_type: bce
   focal_alpha: 0.25
@@ -55,6 +55,6 @@ training:
     type: cosine
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train
-  val_img_anns_path: 
-  val_img_path: 
+  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
+  val_img_path: CrowdHuman/Images_val
   workers: 4

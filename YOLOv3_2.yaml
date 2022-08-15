@@ -19,9 +19,9 @@ data:
   translate: 0.245
 exp_name: YOLOv3_siou_re
 inference:
-  iou_thres: 0.7
+  iou_thres: 0.6
   nms_type: nms
-  obj_thres: 0.2495
+  obj_thres: 0.75
 loss:
   cls_type: bce
   focal_alpha: 0.25
