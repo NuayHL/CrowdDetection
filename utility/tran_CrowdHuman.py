@@ -105,6 +105,5 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
 
 if __name__ == '__main__':
     odgt2coco("CrowdHuman/annotation_val.odgt", "annotation_val_coco_style", "val")
-    check_anno_bbox('CrowdHuman/annotation_val_coco_style.json')
-    #odgt2coco("CrowdHuman/annotation_train.odgt","annotation_train_coco_style","train")
+    odgt2coco("CrowdHuman/annotation_train.odgt","annotation_train_coco_style","train")
 
