@@ -108,3 +108,7 @@ class AnchorAssign():
             assign_result[ib] = iou_max_value-1
 
         return assign_result, real_gt
+
+class SimOTA():
+    def __init__(self):
+        pass
