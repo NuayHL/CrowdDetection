@@ -91,5 +91,8 @@ class Bottleneck(nn.Module):
 
         out += residual
         out = self.relu(out)
-
         return out
+
+class RepBlock(nn.Module):
+    def __init__(self):
+        pass

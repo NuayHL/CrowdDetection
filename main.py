@@ -1,7 +1,7 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path, '../odcore'))
+sys.path.append(os.path.join(path, 'odcore'))
 import torch
 import torch.nn as nn
 from torch import tensor as t

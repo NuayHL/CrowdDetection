@@ -9,6 +9,16 @@ def build_backbone(name):
     '''return backboneClass, output p3c'''
     if name == 'darknet53':
         return Darknet53, 256
+    elif name == 'resnet18':
+        return resnet18, 128
+    elif name == 'resnet34':
+        return resnet34, 128
+    elif name == 'resnet50':
+        return resnet50, 512
+    elif name == 'resnet18':
+        return resnet101, 512
+    elif name == 'resnet18':
+        return resnet152, 512
     else:
         raise NotImplementedError('No backbone named %s' % (name))
 
