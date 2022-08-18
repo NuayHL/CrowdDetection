@@ -30,6 +30,40 @@ class Yolov3_head(nn.Module):
         p5 = self.p5_head(p5)
         return p3, p4, p5
 
+class Retina_head(nn.Module):
+    def __init__(self, classes, anchors_per_grid, p3c=256):
+        super(Retina_head, self).__init__()
+        self.reg_branch = nn.Sequential(nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, anchors_per_grid * 4, kernel_size=3, padding=1))
+
+        self.cls_branch = nn.Sequential(nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
+                                        nn.ReLU(),
+                                        nn.Conv2d(p3c, anchors_per_grid * classes, kernel_size=3, padding=1),
+                                        nn.Sigmoid())
+    def forward(self,*feature_maps):
+        cls = []
+        reg = []
+        for map in feature_maps:
+            cls_i = self.cls_branch(map)
+            reg_i = self.reg_branch(map)
+            out = torch.flatten(out, start_dim=2)
+            out_split = torch.split(out, int(out.shape[1] / self.num_anchors), dim=1)
+            out = torch.cat(out_split, dim=2)
+
+
 def build_head(name):
     if name == 'yolov3_head':
         return Yolov3_head
