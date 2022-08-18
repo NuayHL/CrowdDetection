@@ -17,7 +17,7 @@ data:
   scale: 0.5
   shear: 0.602
   translate: 0.245
-exp_name: RetinaNet
+exp_name: YOLOv3_resnet50
 inference:
   iou_thres: 0.6
   nms_type: nms
@@ -36,13 +36,12 @@ model:
   assignment_iou_type: iou
   assignment_type: default
   backbone: resnet50
-  fpnlevels: [3, 4, 5, 6, 7]
-  head: retina_head
-  name: RetinaNet
-  neck: retina_neck
+  fpnlevels: [3, 4, 5]
+  head: yolov3_head
+  name: yolov3
+  neck: yolov3_neck
   use_anchor: True
 training:
-  using_autocast: False
   batch_size: 8
   eval_interval: 20
   final_epoch: 300
