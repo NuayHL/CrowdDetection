@@ -3,6 +3,7 @@ import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
 from modelzoo.yolov3 import Yolov3
+from modelzoo.retinanet import RetinaNet
 
 class BuildModel():
     def __init__(self, config):
@@ -30,6 +31,8 @@ class BuildModel():
     def get_model_structure(self):
         if self.model_name == 'yolov3':
             return Yolov3
+        elif self.model_name == 'retinanet':
+            return RetinaNet
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
 
@@ -45,9 +48,9 @@ if __name__ == '__main__':
     import torch
     from config import get_default_cfg
     config = get_default_cfg()
+    config.merge_from_file('cfgs/RetinaNet.yaml')
     builder = BuildModel(config)
     model = builder.build().cuda()
     input = torch.rand((1,3,640,640)).cuda()
-    input = {'imgs':input}
     output = model.core(input)
-    print(output[0].shape,output[1].shape,output[2].shape)
+    print(output[0].shape,output[1].shape)

@@ -4,6 +4,7 @@ path = os.getcwd()
 sys.path.append(os.path.join(path,'odcore'))
 import torch
 import torch.distributed as dist
+import torch.multiprocessing as mp
 from odcore.engine.train import Train
 from odcore.args import get_train_args_parser
 from config import get_default_cfg

@@ -35,11 +35,11 @@ model:
   assignment_iou_threshold: 0.5
   assignment_iou_type: iou
   assignment_type: default
-  backbone: darknet53
-  fpnlevels: [3, 4, 5]
-  head: yolov3_head
-  name: yolov3
-  neck: yolov3_neck
+  backbone: resnet50
+  fpnlevels: [3, 4, 5, 6, 7]
+  head: retina_head
+  name: RetinaNet
+  neck: retina_neck
   use_anchor: True
 training:
   batch_size: 8
