@@ -51,7 +51,7 @@ class RetinaNet(nn.Module):
         cls = self.sigmoid(cls.clamp(-9.9, 9.9))
         if 'iou' in self.loss_order:
             reg_for_iou = reg[:, :4].clone()
-            reg_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(reg[:, 2:4].clamp(max=50))
+            reg_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(reg[:, 2:4].clamp(max=7))
             reg_for_iou[:, :2] = anchors[:, :2] + reg[:, :2] * anchors[:, 2:]
         assign_result, gt = self.assignment.assign(sample['annss'])
 
