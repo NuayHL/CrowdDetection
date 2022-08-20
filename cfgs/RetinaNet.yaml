@@ -18,6 +18,7 @@ data:
   shear: 0.602
   translate: 0.245
 exp_name: RetinaNet
+seed: None
 inference:
   iou_thres: 0.6
   nms_type: nms

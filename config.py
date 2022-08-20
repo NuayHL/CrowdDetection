@@ -3,6 +3,8 @@ from odcore.config import get_default_cfg as _get_default_cfg
 
 c = _get_default_cfg()
 
+c.seed = None
+
 c.model = CN()
 c.model.name = 'yolov3'
 c.model.backbone = 'darknet53'

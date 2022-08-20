@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torch.cuda import amp
 
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
