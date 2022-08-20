@@ -49,10 +49,10 @@ training:
   final_epoch: 300
   optimizer:
     lr: 0.002
-    momentum: 0.937
+    momentum: 0.5
     type: sgd
     warm_up_init_lr: 1e-05
-    warm_up_init_momentum: 0.8
+    warm_up_init_momentum: 0.1
     weight_decay: 0.0005
   schedular:
     lrf: 0.01
