@@ -27,25 +27,32 @@ class Train():
         train.go()
 
     def check_resume(self):
-        if args.resume_exp != '':
+        if self.args.resume_exp != '':
             if self.is_mainprocess: print('Resume Training')
-            filelist = os.listdir(args.resume_exp)
-            cfg_flag = False
-            for files in filelist:
-                if 'cfg.yaml' in files:
-                    cfg_file_name = files
-                    print('Find %s' % cfg_file_name)
-                    self.config.merge_from_file(os.path.join(args.resume_exp, cfg_file_name))
-                    cfg_flag = True
-                    break
-            if not cfg_flag:
-                raise FileNotFoundError('Cannot find cfg file')
+            self.load_pre_exp_cfgs()
         else:
             if self.is_mainprocess: print('Normal Training')
             self.config.merge_from_file(args.conf_file)
-            self.config.training.batch_size = int(args.batch_size / args.world_size)
-            self.config.training.workers = int(args.workers / args.world_size)
-            self.config.training.eval_interval = args.eval_interval
+            self.syn_config_with_args()
+
+    def load_pre_exp_cfgs(self):
+        filelist = os.listdir(self.args.resume_exp)
+        cfg_flag = False
+        for files in filelist:
+            if 'cfg.yaml' in files:
+                cfg_file_name = files
+                print('Find %s' % cfg_file_name)
+                self.config.merge_from_file(os.path.join(args.resume_exp, cfg_file_name))
+                cfg_flag = True
+                break
+        if not cfg_flag:
+            raise FileNotFoundError('Cannot find cfg file')
+
+    def syn_config_with_args(self):
+        self.config.training.batch_size = int(args.batch_size / args.world_size)
+        self.config.training.workers = int(args.workers / args.world_size)
+        self.config.training.eval_interval = args.eval_interval
+        self.config.training.accumulate = args.accumu
 
     def set_available_device(self):
         if not self.is_mainprocess: return
