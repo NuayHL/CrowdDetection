@@ -42,4 +42,4 @@ def updata_config_file(filepath):
     cfg.dump_to_file(filepath[:-5])
 
 if __name__ == "__main__":
-    updata_config_file('yolo_ch.yaml')
+    updata_config_file('cfgs/RetinaNet.yaml')
