@@ -43,7 +43,7 @@ model:
   use_anchor: True
 training:
   accumulate: 2
-  batch_size: 8
+  batch_size: 16
   eval_interval: 20
   final_epoch: 300
   optimizer:
@@ -58,9 +58,9 @@ training:
     type: cosine
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train
-  using_autocast: False
+  using_autocast: True
   val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
   val_img_path: CrowdHuman/Images_val
   val_metric: coco
   warm_up_steps: 1000
-  workers: 4
+  workers: 8

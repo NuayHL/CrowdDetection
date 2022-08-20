@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+from torch.cuda import amp
 
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
@@ -50,9 +51,10 @@ class RetinaNet(nn.Module):
         anchors = torch.tile(self.anchs.t(), (cls.shape[0], 1, 1))
         cls = self.sigmoid(cls.clamp(-9.9, 9.9))
         if 'iou' in self.loss_order:
-            reg_for_iou = reg[:, :4].clone()
-            reg_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(reg[:, 2:4].clamp(max=50))
-            reg_for_iou[:, :2] = anchors[:, :2] + reg[:, :2] * anchors[:, 2:]
+            with amp.autocast(enabled=False):
+                reg_for_iou = reg[:, :4].clone()
+                reg_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(reg[:, 2:4].clamp(max=50))
+                reg_for_iou[:, :2] = anchors[:, :2] + reg[:, :2] * anchors[:, 2:]
         assign_result, gt = self.assignment.assign(sample['annss'])
 
         fin_loss = 0
@@ -73,11 +75,12 @@ class RetinaNet(nn.Module):
                     dt_list.append(iou_dt_ib)
                     gt_list.append(iou_gt_ib)
                 else:
-                    l1_dt_ib = reg[ib, :4, pos_mask]
-                    l1_gt_ib = gt_ib[label_pos_generate, :4]
-                    l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
-                    l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
-                    l1_gt_ib = l1_gt_ib.t()
+                    with amp.autocast(enabled=False):
+                        l1_dt_ib = reg[ib, :4, pos_mask]
+                        l1_gt_ib = gt_ib[label_pos_generate, :4]
+                        l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
+                        l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
+                        l1_gt_ib = l1_gt_ib.t()
                     dt_list.append(l1_dt_ib)
                     gt_list.append(l1_gt_ib)
             cls_all_dt_ib = cls[ib, :, pos_neg_mask]
