@@ -1,0 +1,60 @@
+data:
+  annotation_format: x1y1wh
+  degrees: 0.373
+  fliplr: 0.5
+  flipud: 0.0
+  hsv_h: 0.0138
+  hsv_s: 0.664
+  hsv_v: 0.464
+  ignored_input: True
+  input_height: 32
+  input_mean: [0.46431773, 0.44211456, 0.4223358]
+  input_std: [0.29044453, 0.28503336, 0.29363019]
+  input_width: 32
+  mixup: 0.243
+  mosaic: 0.75
+  numofclasses: 1
+  scale: 0.5
+  shear: 0.602
+  translate: 0.245
+exp_name: YOLOv3_siou
+inference:
+  iou_thres: 0.6
+  nms_type: nms
+  obj_thres: 0.75
+loss:
+  cls_type: bce
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  reg_type: ['siou', 'l1']
+  use_focal: False
+  weight: [5.0, 5.0, 0.2]
+model:
+  anchor_ratios: [2, 3]
+  anchor_scales: [0.75, 1]
+  assignment_iou_threshold: 0.5
+  assignment_iou_type: iou
+  assignment_type: default
+  backbone: darknet53
+  fpnlevels: [3, 4, 5]
+  head: yolov3_head
+  name: yolov3
+  neck: yolov3_neck
+  use_anchor: True
+training:
+  batch_size: 8
+  eval_interval: 20
+  final_epoch: 200
+  optimizer:
+    lr: 0.002
+    momentum: 0.937
+    type: adam
+    weight_decay: 0.0005
+  schedular:
+    lrf: 0.01
+    type: cosine
+  train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
+  train_img_path: CrowdHuman/Images_train
+  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
+  val_img_path: CrowdHuman/Images_val
+  workers: 4

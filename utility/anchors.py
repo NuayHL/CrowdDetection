@@ -1,5 +1,57 @@
 import numpy as np
 
+class Anchor():
+    def __init__(self, config):
+        self.config = config
+        self.fpnlevels = config.model.fpnlevels
+        self.basesize = [2 ** (x + 2) for x in self.fpnlevels]
+        self.ratios = config.model.anchor_ratios
+        self.scales = config.model.anchor_scales
+
+    def gen_Bbox(self, singleBatch=False):
+        # formate = xywh
+        allAnchors = np.zeros((0, 4)).astype(np.float32)
+        for idx, p in enumerate(self.fpnlevels):
+            stride = [2 ** p, 2 ** p]
+            xgrid = np.arange(0, self.config.data.input_width, stride[0]) + stride[0] / 2.0
+            ygrid = np.arange(0, self.config.data.input_height, stride[1]) + stride[1] / 2.0
+            xgrid, ygrid = np.meshgrid(xgrid, ygrid)
+            anchors = np.vstack((xgrid.ravel(), ygrid.ravel()))
+            lenAnchors = anchors.shape[1]
+            anchors = np.tile(anchors, (2, len(self.ratios) * len(self.scales))).T
+            start = 0
+            for ratio in self.ratios:
+                for scale in self.scales:
+                    anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
+                    anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
+                    start += lenAnchors
+            allAnchors = np.append(allAnchors, anchors, axis=0)
+
+        # singleBatch return total_anchor_number X 4
+        if singleBatch: return allAnchors
+
+        # batchedAnchor return Batchsize X total_anchor_number X 4
+        allAnchors = np.tile(allAnchors, (self.config.training.batch_size, 1, 1))
+        return allAnchors
+
+    def gen_points(self,singleBatch):
+        # formate = xy
+        allPoints = np.zeros((0, 2)).astype(np.float32)
+        for idx, p in enumerate(self.fpnlevels):
+            stride = [2 ** p, 2 ** p]
+            xgrid = np.arange(0, self.config.data.input_width, stride[0]) + stride[0] / 2.0
+            ygrid = np.arange(0, self.config.data.input_height, stride[1]) + stride[1] / 2.0
+            xgrid, ygrid = np.meshgrid(xgrid, ygrid)
+            points = np.vstack((xgrid.ravel(), ygrid.ravel())).T
+            allPoints = np.append(allPoints, points, axis=0)
+
+        # singleBatch return total_anchor_number X 4
+        if singleBatch: return allPoints
+
+        # batchedAnchor return Batchsize X total_anchor_number X 4
+        allPoints = np.tile(allPoints, (self.config.training.batch_size, 1, 1))
+        return allPoints
+
 def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''
     return: batch_size X total_anchor_numbers X 4
