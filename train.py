@@ -45,7 +45,7 @@ class Train():
             if 'cfg.yaml' in files:
                 cfg_file_name = files
                 print('Find %s' % cfg_file_name)
-                self.config.merge_from_file(os.path.join(args.resume_exp, cfg_file_name))
+                self.config.merge_from_file(os.path.join(self.args.resume_exp, cfg_file_name))
                 cfg_flag = True
                 break
         if not cfg_flag:
