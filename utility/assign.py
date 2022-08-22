@@ -2,7 +2,7 @@
 import torch
 
 from utility.iou import IOU
-from utility.anchors import generateAnchors
+from utility.anchors import Anchor, generateAnchors
 
 class AnchorAssign():
     def __init__(self, config, device):
@@ -13,7 +13,9 @@ class AnchorAssign():
         self.using_ignored_input = config.data.ignored_input
         self.device = device
         # change anchor format from xywh to x1y1x2y2
-        self.anchs = torch.from_numpy(generateAnchors(config,singleBatch=True)).float().to(device)
+        #self.anchs = torch.from_numpy(generateAnchors(config,singleBatch=True)).float().to(device)
+        genAchor = Anchor(config)
+        self.anchs = torch.from_numpy(genAchor.gen_Bbox(singleBatch=True)).float().to(device)
         self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
         self.anchs[:, 1] = self.anchs[:, 1] - 0.5 * self.anchs[:, 3]
         self.anchs[:, 2] = self.anchs[:, 0] + self.anchs[:, 2]
