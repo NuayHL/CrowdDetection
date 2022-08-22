@@ -117,6 +117,7 @@ class BCElossAmp():
         self.eps = eps
         self.reduction = reduction
     def __call__(self, dt, gt):
+        dt = dt.to(torch.float32)
         dt = dt.clamp(self.eps, 1-self.eps)
         gt = gt.clamp(0, 1)
         loss = - gt * torch.log(dt) + (gt - 1.0) * torch.log(1.0 - dt)

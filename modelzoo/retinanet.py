@@ -94,7 +94,7 @@ class RetinaNet(nn.Module):
             loss, lossdict = self.loss(dt_list, gt_list)
             fin_loss += loss
             updata_loss_dict(fin_loss_dict, lossdict)
-        num_pos_samples = num_pos_samples.item()
+        num_pos_samples = max(num_pos_samples.item(),1)
         for key in fin_loss_dict:
             fin_loss_dict[key] /= num_pos_samples
         return fin_loss/num_pos_samples, fin_loss_dict
