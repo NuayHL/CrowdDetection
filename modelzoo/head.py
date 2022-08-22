@@ -52,8 +52,8 @@ class Retina_head(nn.Module):
                                         nn.ReLU(),
                                         nn.Conv2d(p3c, p3c, kernel_size=3, padding=1),
                                         nn.ReLU(),
-                                        nn.Conv2d(p3c, anchors_per_grid * (1 + classes), kernel_size=3, padding=1),
-                                        nn.Sigmoid())
+                                        nn.Conv2d(p3c, anchors_per_grid * (1 + classes), kernel_size=3, padding=1))
+
     def forward(self,*feature_maps):
         cls = []
         reg = []

@@ -27,9 +27,9 @@ loss:
   cls_type: bce
   focal_alpha: 0.25
   focal_gamma: 2.0
-  reg_type: ['siou', 'l1']
+  reg_type: ['l1']
   use_focal: False
-  weight: [5.0, 5.0, 0.2]
+  weight: [7.0, 0.2]
 model:
   anchor_ratios: [2, 3]
   anchor_scales: [0.75, 1]
@@ -60,8 +60,8 @@ training:
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train
   using_autocast: True
-  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
-  val_img_path: CrowdHuman/Images_val
+  val_img_anns_path: ''
+  val_img_path: ''
   val_metric: coco
   warm_up_steps: 1000
   workers: 8
