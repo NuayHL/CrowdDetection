@@ -93,7 +93,7 @@ if __name__ == "__main__":
     p5 = torch.rand((1, 1024, 8, 8))
 
     fpn = Retina_neck()
-    result = fpn((p3,p4,p5))
+    result = fpn(p3,p4,p5)
     for key in fpn.state_dict():
         print(key)
     for i in result:

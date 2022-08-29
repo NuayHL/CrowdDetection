@@ -48,8 +48,9 @@ class RetinaNet(nn.Module):
     def training_loss(self,sample):
         cls, reg = self.core(sample['imgs'])
         reg = reg.to(torch.float32)
+        cls = cls.to(torch.float32)
         anchors = torch.tile(self.anchs.t(), (cls.shape[0], 1, 1))
-        cls = self.sigmoid(cls.clamp(-9.9, 9.9))
+        # cls = self.sigmoid(cls.clamp(-15, 15))
         if 'iou' in self.loss_order:
             reg_for_iou = reg[:, :4].clone()
             reg_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(reg[:, 2:4].clamp(max=50))

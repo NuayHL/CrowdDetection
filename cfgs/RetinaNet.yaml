@@ -11,13 +11,13 @@ data:
   input_mean: [0.46431773, 0.44211456, 0.4223358]
   input_std: [0.29044453, 0.28503336, 0.29363019]
   input_width: 640
-  mixup: 0.243
-  mosaic: 0.75
+  mixup: 0.25
+  mosaic: 1.0
   numofclasses: 1
   scale: 0.5
   shear: 0.602
   translate: 0.245
-exp_name: RetinaNet
+exp_name: RetinaNet_test
 seed: None
 inference:
   iou_thres: 0.6
