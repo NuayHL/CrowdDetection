@@ -17,7 +17,7 @@ data:
   scale: 0.5
   shear: 0.602
   translate: 0.245
-exp_name: RetinaNet_test
+exp_name: RetinaNet_logist
 seed: None
 inference:
   iou_thres: 0.6
@@ -27,9 +27,9 @@ loss:
   cls_type: bce
   focal_alpha: 0.25
   focal_gamma: 2.0
-  reg_type: ['l1']
+  reg_type: ['l1','siou']
   use_focal: False
-  weight: [7.0, 0.2]
+  weight: [7.0, 7.0, 0.3]
 model:
   anchor_ratios: [2, 3]
   anchor_scales: [0.75, 1]
