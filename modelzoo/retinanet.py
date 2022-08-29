@@ -64,6 +64,7 @@ class RetinaNet(nn.Module):
             gt_list = []
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask = torch.gt(assign_result_ib, 0.5)
+            self._debug_to_file('//////////gt:', len(gt_ib), '\n/pos:',pos_mask.sum())
             pos_neg_mask = torch.gt(assign_result_ib, -0.5)
             num_pos_samples += pos_mask.sum()
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
@@ -124,3 +125,7 @@ class RetinaNet(nn.Module):
     @staticmethod
     def coco_parse_result(results):
         return Result.result_parse_for_json(results)
+
+    def _debug_to_file(self, *args,**kwargs):
+        with open('debug.txt', 'a') as f:
+            print(*args,**kwargs,file=f)
