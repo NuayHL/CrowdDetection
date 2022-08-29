@@ -27,6 +27,7 @@ class Result():
             dt_dict['category_id'] = int(dt[5].tolist())
             dt_dict['bbox'] = dt[:4].tolist()
             dt_dict['score'] = dt[4].tolist()
+            dt_dict['height'] = dt[3].tolist()
             fin_list.append(dt_dict)
         return fin_list
 
