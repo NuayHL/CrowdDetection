@@ -15,7 +15,7 @@ class Train():
     def __init__(self, args, rank, world_size=1):
         self.rank = rank
         self.world_size = world_size
-        self.is_mainprocess = True if args.local_rank in [-1,0] else False
+        self.is_mainprocess = True if rank in [-1,0] else False
         self.init_process_group()
         self.args = args
         self.config = get_default_cfg()
