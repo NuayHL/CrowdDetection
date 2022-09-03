@@ -17,19 +17,19 @@ data:
   scale: 0.5
   shear: 0.602
   translate: 0.245
-exp_name: RetinaNet_logist
+exp_name: RetinaNet
 seed: None
 inference:
-  iou_thres: 0.6
+  iou_thres: 0.55
   nms_type: nms
-  obj_thres: 0.75
+  obj_thres: 0.4
 loss:
   cls_type: bce
   focal_alpha: 0.25
   focal_gamma: 2.0
-  reg_type: ['l1','siou']
-  use_focal: False
-  weight: [7.0, 7.0, 0.3]
+  reg_type: ['l1','giou']
+  use_focal: True
+  weight: [7.0, 7.0, 1.0]
 model:
   anchor_ratios: [2, 3]
   anchor_scales: [0.75, 1]
@@ -49,7 +49,7 @@ training:
   final_epoch: 300
   optimizer:
     lr: 0.002
-    momentum: 0.5
+    momentum: 0.937
     type: sgd
     warm_up_init_lr: 1e-05
     warm_up_init_momentum: 0.1
@@ -60,8 +60,8 @@ training:
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train
   using_autocast: True
-  val_img_anns_path: ''
-  val_img_path: ''
+  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
+  val_img_path: CrowdHuman/Images_val
   val_metric: coco
   warm_up_steps: 1000
   workers: 8
