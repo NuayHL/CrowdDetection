@@ -22,10 +22,11 @@ class AnchorAssign():
         self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
         self.anchs_len = self.anchs.shape[0]
 
-    def assign(self, gt):
+    def assign(self, gt, dt=None):
         '''
         using batch_sized data input
         :param gt:aka:"anns":List lenth B, each with np.float32 ann}
+        :param dt:aka:"detections": tensor B x Num x (4+1+classes)}
         :return:the same sture of self.anchs, but filled
                 with value indicates the assignment of the anchor
         '''
@@ -34,6 +35,9 @@ class AnchorAssign():
                 return self._retinaAssign_using_ignored(gt)
             else:
                 return self._retinaAssign(gt)
+        elif self.assignType == 'simota':
+            assert dt != None, 'You are using SimOTA, please input dt'
+            return self._simOTA(gt, dt)
         else:
             raise NotImplementedError("Unknown assignType: %s"%self.assignType)
 
@@ -110,6 +114,10 @@ class AnchorAssign():
             assign_result[ib] = iou_max_value-1
 
         return assign_result, real_gt
+
+    def _simOTA(self, gt, dt):
+        pass
+
 
 class SimOTA():
     def __init__(self):

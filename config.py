@@ -44,4 +44,6 @@ def updata_config_file(filepath):
     cfg.dump_to_file(filepath[:-5])
 
 if __name__ == "__main__":
-    updata_config_file('cfgs/data_no_argu.yaml')
+    #updata_config_file('cfgs/YOLOv3_step.yaml')
+    cfg = get_default_cfg()
+    cfg.merge_from_file('cfgs/YOLOv3_step.yaml')
