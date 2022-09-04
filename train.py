@@ -7,6 +7,7 @@ import torch.distributed as dist
 import torch.multiprocessing as mp
 from odcore.engine.train import Train as _Train
 from odcore.args import get_train_args_parser
+from odcore.config import merge_from_files
 from config import get_default_cfg
 from utility.envs import get_envs, seed_init
 from modelzoo.build_models import BuildModel
@@ -35,7 +36,8 @@ class Train():
             self.load_pre_exp_cfgs()
         else:
             if self.is_mainprocess: print('Normal Training')
-            self.config.merge_from_file(self.args.conf_file)
+            merge_from_files(self.config, self.args.conf_file)
+            #self.config.merge_from_file(self.args.conf_file)
             self.syn_config_with_args()
 
     def load_pre_exp_cfgs(self):
