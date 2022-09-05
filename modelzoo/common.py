@@ -2,6 +2,17 @@ import torch
 import torch.nn as nn
 import numpy as np
 
+def get_activation(name="silu", inplace=True):
+    if name == "silu":
+        module = nn.SiLU(inplace=inplace)
+    elif name == "relu":
+        module = nn.ReLU(inplace=inplace)
+    elif name == "lrelu":
+        module = nn.LeakyReLU(0.1, inplace=inplace)
+    else:
+        raise AttributeError("Unsupported act type: {}".format(name))
+    return module
+
 def make_layers(num, block, *args, **kwargs):
     layers = []
     for i in range(num):
@@ -15,13 +26,52 @@ def conv_nobias_bn(in_channels, out_channels, kernel_size, stride, padding, grou
     result.add_module('bn', nn.BatchNorm2d(num_features=out_channels))
     return result
 
+class BaseConv(nn.Module):
+    """A Conv2d -> Batchnorm -> silu/leaky relu block"""
+
+    def __init__(
+        self, in_channels, out_channels, kernel_size, stride, groups=1, bias=False, act="silu"
+    ):
+        super().__init__()
+        # same padding
+        pad = (kernel_size - 1) // 2
+        self.conv = nn.Conv2d(
+            in_channels,
+            out_channels,
+            kernel_size=kernel_size,
+            stride=stride,
+            padding=pad,
+            groups=groups,
+            bias=bias,
+        )
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.act = get_activation(act, inplace=True)
+
+    def forward(self, x):
+        return self.act(self.bn(self.conv(x)))
+
+class DWConv(nn.Module):
+    def __init__(self, in_channels, out_channels, kernel_size, stride, act = 'silu'):
+        super(DWConv, self).__init__()
+        self.layer_conv = BaseConv(in_channels, in_channels, kernel_size, stride, groups=in_channels, act=act)
+        self.depth_conv = BaseConv(in_channels, out_channels, kernel_size=1, stride=1, groups=1, act=act)
+    def forward(self, x):
+        return self.depth_conv(self.layer_conv(x))
+
+
+def conv_nobias_bn_silu(ic, oc, kernel_size=3, stride=1, padding=1, groups=1):
+    return nn.Sequential(
+        nn.Conv2d(ic, oc, kernel_size, stride, padding, bias=False, groups=groups),
+        nn.BatchNorm2d(oc),
+        nn.SiLU(inplace=True))
+
+## Darknet
 def conv_nobias_bn_lrelu(ic, oc, kernel_size=3, stride=1, padding=1, groups=1):
     return nn.Sequential(
         nn.Conv2d(ic, oc, kernel_size, stride, padding, bias=False, groups=groups),
         nn.BatchNorm2d(oc),
         nn.LeakyReLU(inplace=True))
 
-## Darknet
 class DarkResidualBlock(nn.Module):
     def __init__(self, ic):
         super(DarkResidualBlock, self).__init__()
@@ -223,4 +273,8 @@ class RepBlock(nn.Module):
         if hasattr(self, 'id_tensor'):
             self.__delattr__('id_tensor')
         self.deploy = True
+
+# YOLOX
+
+
 

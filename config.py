@@ -10,6 +10,7 @@ c.model.name = 'yolov3'
 c.model.backbone = 'darknet53'
 c.model.neck = 'yolov3_neck'
 c.model.head = 'yolov3_head'
+c.model.structure_extra = None
 c.model.use_anchor = True
 c.model.fpnlevels = [3, 4, 5]
 c.model.anchor_ratios = [2, 4]

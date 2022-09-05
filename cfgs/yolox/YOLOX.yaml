@@ -1,0 +1,26 @@
+exp_name: YOLOv3_step_finetune
+inference:
+  iou_thres: 0.6
+  nms_type: nms
+  obj_thres: 0.5
+loss:
+  cls_type: bce
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  reg_type: ['giou', 'l1']
+  use_focal: False
+  weight: [5.0, 5.0, 0.3]
+model:
+  anchor_ratios: [2, 3]
+  anchor_scales: [0.75, 1]
+  assignment_iou_threshold: 0.5
+  assignment_iou_type: iou
+  assignment_type: default
+  backbone: yolox
+  fpnlevels: [3, 4, 5]
+  head: yolox_head
+  name: yolov3
+  neck: yolov3_neck
+  structure_extra: [{'head':{'depthwise':False,'width':1.0}}]
+  use_anchor: True
+seed: None

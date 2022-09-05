@@ -1,3 +1,4 @@
+from collections import defaultdict
 import torch.nn as nn
 import modelzoo.head as head
 import modelzoo.neck as neck
@@ -16,14 +17,25 @@ class BuildModel():
         model_neck, p3c_r = neck.build_neck(self.config.model.neck.lower())
         model_head = head.build_head(self.config.model.head.lower())
 
-        classes = self.config.data.numofclasses
-        if self.config.model.use_anchor:
-            anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
-            model_head = model_head(classes, anchors_per_grid, int(p3c * p3c_r))
-        else:
-            model_head = model_head(classes, int(p3c * p3c_r))
+        if self.config.model.structure_extra != None:
+            sdict = defaultdict(dict,self.config.model.structure_extra[0])
+            if 'backbone' in sdict:
+                main_model_dict = sdict['model']
+                backbone_dict = sdict['backbone']
+                neck_dict = sdict['neck']
+                head_dict = sdict['head']
 
-        model = main_model(self.config, backbone=model_backbone(), neck=model_neck(p3c), head=model_head)
+        classes = self.config.data.numofclasses
+        anchors = 1
+        if self.config.model.use_anchor:
+            anchors = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
+
+        model = main_model(self.config,
+                           backbone=model_backbone(**backbone_dict),
+                           neck=model_neck(p3c, **neck_dict),
+                           head=model_head(classes, anchors, int(p3c * p3c_r),**head_dict),
+                           **main_model_dict)
+
         # weight init
         model.apply(weight_init)
         return model
