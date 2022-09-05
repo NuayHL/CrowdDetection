@@ -48,7 +48,7 @@ training:
   eval_interval: 20
   final_epoch: 300
   optimizer:
-    lr: 0.002
+    lr: 0.001
     momentum: 0.937
     type: sgd
     warm_up_init_lr: 1e-05
