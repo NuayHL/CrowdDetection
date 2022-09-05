@@ -1,27 +1,4 @@
-data:
-  annotation_format: x1y1wh
-  degrees: 0.373
-  fliplr: 0.5
-  flipud: 0.0
-  hsv_h: 0.0138
-  hsv_s: 0.664
-  hsv_v: 0.464
-  ignored_input: True
-  input_height: 640
-  input_mean: [0.46431773, 0.44211456, 0.4223358]
-  input_std: [0.29044453, 0.28503336, 0.29363019]
-  input_width: 640
-  mixup: 0.243
-  mosaic: 0.0
-  numofclasses: 1
-  scale: 0.5
-  shear: 0.602
-  translate: 0.245
 exp_name: YOLOv3_siou
-inference:
-  iou_thres: 0.6
-  nms_type: nms
-  obj_thres: 0.75
 loss:
   cls_type: bce
   focal_alpha: 0.25
@@ -58,3 +35,7 @@ training:
   val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
   val_img_path: CrowdHuman/Images_val
   workers: 4
+inference:
+  iou_thres: 0.6
+  nms_type: nms
+  obj_thres: 0.75
