@@ -1,4 +1,4 @@
-exp_name: YOLOv3_step_finetune
+exp_name: YOLOv3_step
 inference:
   iou_thres: 0.6
   nms_type: nms
@@ -7,7 +7,7 @@ loss:
   cls_type: bce
   focal_alpha: 0.25
   focal_gamma: 2.0
-  reg_type: ['giou', 'l1']
+  reg_type: ['siou', 'l1']
   use_focal: False
   weight: [5.0, 5.0, 0.3]
 model:
