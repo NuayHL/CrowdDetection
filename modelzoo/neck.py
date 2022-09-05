@@ -78,6 +78,13 @@ class Retina_neck(nn.Module):
 
         return P3_x, P4_x, P5_x, P6_x, P7_x
 
+class PAFPN(nn.Module):
+    def __init__(self, p3c=128):
+        super(PAFPN, self).__init__()
+        self.in_channels = [int(p3c), int(p3c * 2), int(p3c * 4)]
+        self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
+
+
 def build_neck(name):
     '''return neckClass, ratio on p3c'''
     if name == 'yolov3_neck':

@@ -148,7 +148,7 @@ def build_head(name):
         return Yolov3_head
     elif name == 'retina_head':
         return Retina_head
-    elif name == ' yolox_head':
+    elif name == 'yolox_head':
         return YOLOX_head
     else:
         raise NotImplementedError('No head named %s'%name)
