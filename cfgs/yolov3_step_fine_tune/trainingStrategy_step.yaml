@@ -9,9 +9,11 @@ training:
   using_autocast: True
   optimizer:
     lr: 0.01
-    mode: none
+    mode: groups
     momentum: 0.937
     type: sgd
+    para_group: [{'backbone': {'lr':0.75,'momentum':1.0},
+                  'neck': {'lr':0.95,'momentum':1.0}}]
     warm_up_init_lr: 1e-05
     warm_up_init_momentum: 0.8
     weight_decay: 0.0005
