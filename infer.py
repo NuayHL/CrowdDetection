@@ -12,7 +12,7 @@ from modelzoo.build_models import BuildModel
 def main(args):
     assert os.path.exists(args.img),'Invalid image path'
     cfg = get_default_cfg()
-    cfg.merge_from_file(args.conf_file)
+    cfg.merge_from_files(args.conf_file)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
     builder = BuildModel(cfg)
     model = builder.build()
