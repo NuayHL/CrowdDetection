@@ -19,6 +19,8 @@ def build_backbone(name):
         return resnet101, 512
     elif name == 'resnet18':
         return resnet152, 512
+    elif name == 'cspdarknet':
+        return CSPDarknet, None
     else:
         raise NotImplementedError('No backbone named %s' % (name))
 
@@ -48,7 +50,7 @@ class Darknet53(nn.Module):
         p5 = self.residual_block5(self.conv6(p4))
         return p3, p4, p5
 
-from modelzoo.common import BasicBlock, Bottleneck
+from modelzoo.common import BasicBlock_res, Bottleneck_res
 # Part from:
 #     https://github.com/yhenon/pytorch-retinanet/blob/master/retinanet/utils.py
 
@@ -95,23 +97,77 @@ class ResNet(nn.Module):
         return p3, p4, p5
 
 def resnet18():
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    return ResNet(BasicBlock_res, [2, 2, 2, 2])
 
 def resnet34():
-    return ResNet(BasicBlock, [3, 4, 6, 3])
+    return ResNet(BasicBlock_res, [3, 4, 6, 3])
 
 def resnet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+    return ResNet(Bottleneck_res, [3, 4, 6, 3])
 
 def resnet101():
-    return ResNet(Bottleneck, [3, 4, 23, 3])
+    return ResNet(Bottleneck_res, [3, 4, 23, 3])
 
 def resnet152():
-    return ResNet(Bottleneck, [3, 8, 36, 3])
+    return ResNet(Bottleneck_res, [3, 8, 36, 3])
+
+from modelzoo.common import BaseConv, DWConv, CSPLayer, Focus, SPPBottleneck
+class CSPDarknet(nn.Module):
+    def __init__(self, depth=1.0, width=1.0, depthwise=False, act='silu'):
+        super(CSPDarknet, self).__init__()
+        base_channels = int(width * 64)
+        base_depth = max(round(depth * 3), 1)
+        Conv = DWConv if depthwise else BaseConv
+        self.p3c = base_channels * 4
+
+        self.stem = Focus(3, base_channels, kernel_size=3, act=act)
+
+        self.dark2 = nn.Sequential(
+            Conv(base_channels, base_channels * 2, 3, 2, act=act),
+            CSPLayer(
+                base_channels * 2, base_channels * 2,
+                n=base_depth, depthwise=depthwise, act=act
+            ),
+        )
+        # dark3
+        self.dark3 = nn.Sequential(
+            Conv(base_channels * 2, base_channels * 4, 3, 2, act=act),
+            CSPLayer(
+                base_channels * 4, base_channels * 4,
+                n=base_depth * 3, depthwise=depthwise, act=act,
+            ),
+        )
+
+        # dark4
+        self.dark4 = nn.Sequential(
+            Conv(base_channels * 4, base_channels * 8, 3, 2, act=act),
+            CSPLayer(
+                base_channels * 8, base_channels * 8,
+                n=base_depth * 3, depthwise=depthwise, act=act,
+            ),
+        )
+
+        # dark5
+        self.dark5 = nn.Sequential(
+            Conv(base_channels * 8, base_channels * 16, 3, 2, act=act),
+            SPPBottleneck(base_channels * 16, base_channels * 16, activation=act),
+            CSPLayer(
+                base_channels * 16, base_channels * 16, n=base_depth,
+                shortcut=False, depthwise=depthwise, act=act,
+            ),
+        )
+
+    def forward(self, x):
+        x = self.stem(x)
+        x = self.dark2(x)
+        p3 = self.dark3(x)
+        p4 = self.dark4(p3)
+        p5 = self.dark5(p4)
+        return p3, p4, p5
 
 if __name__ == "__main__":
     dummy_input = torch.ones([1,3,64,64])
-    model = resnet152()
+    model = CSPDarknet()
     output = model(dummy_input)
     print(output[0].shape,output[1].shape,output[2].shape)
 

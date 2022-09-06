@@ -30,8 +30,7 @@ class Yolov3(nn.Module):
     def core(self,input):
         p3, p4, p5 = self.backbone(input)
         p3, p4, p5 = self.neck(p3, p4, p5)
-        p3, p4, p5 = self.head(p3, p4, p5)
-        dt = self._result_parse((p3, p4, p5))
+        dt = self.head(p3, p4, p5)
         return dt
 
     def set(self, args, device):
@@ -131,19 +130,6 @@ class Yolov3(nn.Module):
     @staticmethod
     def coco_parse_result(results):
         return Result.result_parse_for_json(results)
-
-    def _result_parse(self, triple):
-        '''
-        flatten the results according to the format of anchors
-        '''
-        out = torch.zeros((triple[0].shape[0], int(5 + self.config.data.numofclasses), 0))
-        if torch.cuda.is_available():
-            out = out.to(self.device)
-        for fp in triple:
-            fp = torch.flatten(fp, start_dim=2)
-            split = torch.split(fp, int(fp.shape[1] / self.anchors_per_grid), dim=1)
-            out = torch.cat([out]+list(split), dim=2)
-        return out
 
     def _debug_to_file(self, *args,**kwargs):
         if self.debug:

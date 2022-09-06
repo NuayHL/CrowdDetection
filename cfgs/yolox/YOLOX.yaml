@@ -1,4 +1,4 @@
-exp_name: YOLOv3_step_finetune
+exp_name: YOLOX_test
 inference:
   iou_thres: 0.6
   nms_type: nms
@@ -16,11 +16,13 @@ model:
   assignment_iou_threshold: 0.5
   assignment_iou_type: iou
   assignment_type: default
-  backbone: yolox
   fpnlevels: [3, 4, 5]
-  head: yolox_head
   name: yolov3
-  neck: yolov3_neck
-  structure_extra: [{'head':{'depthwise':False,'width':1.0}}]
+  backbone: cspdarknet
+  head: yolox_head
+  neck: pafpn
+  structure_extra: [{'backbone':{'depth':1.0, 'width':1.0, 'depthwise':False, 'act':'silu'},
+                     'neck':{'depth':1.0, 'depthwise':False, 'act':'silu'},
+                     'head':{'depthwise':False, 'act':'silu'},}]
   use_anchor: True
 seed: None
