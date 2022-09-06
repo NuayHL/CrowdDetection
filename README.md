@@ -1,5 +1,8 @@
 ## Crowd ObjectDetection based on YOLO
 
+This project aims to reproduce the YOLO series via pytorch
+
+
 #### Environment Setting
 - Base Enviroment
 ```
@@ -8,6 +11,15 @@ pip install -r requirments.txt
 - Pytorch Install
 
     check https://pytorch.org/get-started/locally/ for pytorch install
+
+
+- odcore Install (Providing training, evaluating, inferencing, etc backend)
+  
+  https://github.com/NuayHL/odcore
+```
+git clone https://github.com/NuayHL/odcore.git
+```
+
 #### Simple Inferencing 
 - Downloading Model Weight: YOLOv3_640.pth
 
@@ -32,9 +44,9 @@ python infer.py --ckpt-file YOLOv3_640.pth --conf-file YOLOv3.yaml --img img_fou
 CrowdDetection
       |--CrowdHuman
             |--Images_train
-                  |-- All training images
+            |      |-- All training images
             |--Images_val    
-                  |-- All val images
+            |      |-- All val images
             |--annotation_train.odgt
             |--annotation_val.odgt
 ```
@@ -57,4 +69,4 @@ python drawloss.py --loss-log YOLOv3_siou_loss.log
 - Replace the --loss-log to other _loss.log files to visualize them
 
 
-*Copyright© Haoyuan Liu 2022. All right reserved*
+*Copyright© NuayHL 2022. All right reserved*
