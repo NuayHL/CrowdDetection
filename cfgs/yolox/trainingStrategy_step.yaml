@@ -8,7 +8,7 @@ training:
   warm_up_steps: 500
   using_autocast: True
   optimizer:
-    lr: 0.01
+    lr: 0.005
     mode: default
     momentum: 0.937
     type: sgd
