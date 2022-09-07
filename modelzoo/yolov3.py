@@ -132,8 +132,7 @@ class Yolov3(nn.Module):
         return Result.result_parse_for_json(results)
 
     def _debug_to_file(self, *args,**kwargs):
-        if self.debug:
-            with open('debug.txt', 'a') as f:
-                print(*args,**kwargs,file=f)
+        with open('debug.txt', 'a') as f:
+            print(*args,**kwargs,file=f)
 
 
