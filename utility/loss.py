@@ -10,10 +10,11 @@ class GeneralLoss():
     def __init__(self, config, device, reduction='sum'):
         self.config = config
         self.device = device
+        self.reduction = reduction
         self.loss_parse()
         self.loss_weight = config.loss.weight
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
-        self.reduction = reduction
+
 
     def loss_parse(self):
         self.reg_loss = []
