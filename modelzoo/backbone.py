@@ -50,7 +50,7 @@ class Darknet53(nn.Module):
         p5 = self.residual_block5(self.conv6(p4))
         return p3, p4, p5
 
-from modelzoo.common import BasicBlock_res, Bottleneck_res
+from modelzoo.common import BasicBlock, Bottleneck
 # Part from:
 #     https://github.com/yhenon/pytorch-retinanet/blob/master/retinanet/utils.py
 
@@ -97,19 +97,19 @@ class ResNet(nn.Module):
         return p3, p4, p5
 
 def resnet18():
-    return ResNet(BasicBlock_res, [2, 2, 2, 2])
+    return ResNet(BasicBlock, [2, 2, 2, 2])
 
 def resnet34():
-    return ResNet(BasicBlock_res, [3, 4, 6, 3])
+    return ResNet(BasicBlock, [3, 4, 6, 3])
 
 def resnet50():
-    return ResNet(Bottleneck_res, [3, 4, 6, 3])
+    return ResNet(Bottleneck, [3, 4, 6, 3])
 
 def resnet101():
-    return ResNet(Bottleneck_res, [3, 4, 23, 3])
+    return ResNet(Bottleneck, [3, 4, 23, 3])
 
 def resnet152():
-    return ResNet(Bottleneck_res, [3, 8, 36, 3])
+    return ResNet(Bottleneck, [3, 8, 36, 3])
 
 from modelzoo.common import BaseConv, DWConv, CSPLayer, Focus, SPPBottleneck
 class CSPDarknet(nn.Module):
