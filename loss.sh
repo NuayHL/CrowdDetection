@@ -1,6 +1,7 @@
-exp_name=$1
+path=$1
+exp_name=${path##*/}
 echo "Exp name: "$exp_name""
-python drawloss.py --loss-log "running_log/"$exp_name"/"$exp_name"_loss.log"
+python drawloss.py --loss-log "running_log/"$path"/"$exp_name"_loss.log"
 echo " "
 echo "Press AnyKey to Continue"
 read -n 1

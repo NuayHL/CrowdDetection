@@ -10,10 +10,10 @@ from utility.result import Result
 # model.set(args, device)
 # model.coco_parse_result(results) results: List of prediction
 
-class Yolo(nn.Module):
+class Yolov3(nn.Module):
     '''4 + 1 + classes'''
     def __init__(self, config, backbone, neck, head):
-        super(Yolo, self).__init__()
+        super(Yolov3, self).__init__()
         self.config = config
         self.backbone = backbone
         self.neck = neck
@@ -42,24 +42,28 @@ class Yolo(nn.Module):
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
             self.output_number = self.anchs.shape[0]
         else:
-            raise NotImplementedError('Yolov3 do not support anchor free')
+            raise NotImplementedError('Current Yolo do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
         self.loss_order = []
         for type in self.config.loss.reg_type:
             if 'l1' in type: self.loss_order.append('l1')
             if 'iou' in type: self.loss_order.append('iou')
+        assert 'iou' in self.loss_order, 'Please adding iou-type loss'
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
-        anchors = torch.tile(self.anchs.t(), (dt.shape[0], 1, 1))
-        cls_dt = dt[:, 4:, :]
-        #cls_dt = self.sigmoid(dt[:, 4:, :].clamp(-9.9,9.9))
-        if 'iou' in self.loss_order:
-            dt_shift = dt[:, :4].clone()
-            dt_shift[:, 2:] = anchors[:, 2:] * torch.exp(dt[:, 2:4].clamp(max=50))
-            dt_shift[:, :2] = anchors[:, :2] + dt[:, :2] * anchors[:, 2:]
+        cls_dt = dt[:, 5:, :]
+        obj_dt = dt[:, 4, :]
+        ori_reg_dt = dt[:, :4, :]
+        shift_dt = self.get_shift_bbox(ori_reg_dt)
+
         assign_result, gt = self.assignment.assign(sample['annss'])
+
+        cls_dt_cal = []
+        shift_dt_cal = []
+
+        # first construct simOTA!!
 
         fin_loss = 0
         fin_loss_dict = {}
@@ -74,7 +78,7 @@ class Yolo(nn.Module):
             label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
             for loss_type in self.loss_order:
                 if loss_type == 'iou':
-                    iou_dt_ib = dt_shift[ib, :, pos_mask]
+                    iou_dt_ib = dt_for_iou[ib, :, pos_mask]
                     iou_gt_ib = gt_ib[label_pos_generate, :4].t()
                     dt_list.append(iou_dt_ib)
                     gt_list.append(iou_gt_ib)
@@ -127,13 +131,23 @@ class Yolo(nn.Module):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
 
+    def get_shift_bbox(self, ori_box:torch.Tensor):
+        if self.config.model.use_anchor:
+            shift_box = ori_box.clone()
+            anchors = torch.tile(self.anchs.t(), (shift_box.shape[0], 1, 1))
+            shift_box[:, 2:] = anchors[:, 2:] * torch.exp(ori_box[:, 2:4].clamp(max=50))
+            shift_box[:, :2] = anchors[:, :2] + ori_box[:, :2] * anchors[:, 2:]
+        else:
+            raise NotImplementedError
+
+        return shift_box
+
     @staticmethod
     def coco_parse_result(results):
         return Result.result_parse_for_json(results)
 
     def _debug_to_file(self, *args,**kwargs):
-        if self.debug:
-            with open('debug.txt', 'a') as f:
-                print(*args,**kwargs,file=f)
+        with open('debug.txt', 'a') as f:
+            print(*args,**kwargs,file=f)
 
 

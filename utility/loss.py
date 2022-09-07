@@ -7,23 +7,24 @@ class GeneralLoss():
     reg loss: smooth l1
     cls loss: bce + focal
     '''
-    def __init__(self, config, device):
+    def __init__(self, config, device, reduction='sum'):
         self.config = config
         self.device = device
         self.loss_parse()
         self.loss_weight = config.loss.weight
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
+        self.reduction = reduction
 
     def loss_parse(self):
         self.reg_loss = []
         self.reg_loss_type = self.config.loss.reg_type
         for method in self.reg_loss_type:
             if method in ['ciou', 'diou', 'giou', 'siou']:
-                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
+                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction))
             if method in ['l1']:
-                self.reg_loss.append(SmoothL1())
+                self.reg_loss.append(SmoothL1(self.reduction))
 
-        self.cls_loss = FocalBCElogits(self.config, self.device)
+        self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
 
     def __call__(self, dt_list, gt_list):
         '''
@@ -79,7 +80,8 @@ class GeneralLoss():
     #     return fin_loss, losses
 
 class FocalBCElogits():
-    def __init__(self, config, device):
+    def __init__(self, config, device, reduction='none'):
+        self.reduction = reduction
         self.use_focal = config.loss.use_focal
         self.alpha = config.loss.focal_alpha
         self.gamma = config.loss.focal_gamma
@@ -93,7 +95,12 @@ class FocalBCElogits():
             focal_weight = torch.where(torch.eq(gt_cls, 1.), 1 - dt_cls, dt_cls)
             focal_weight = alpha * torch.pow(focal_weight, self.gamma)
             bceloss *= focal_weight
-        return bceloss.sum()
+        if self.reduction == 'sum':
+            return bceloss.sum()
+        elif self.reduction == 'mean':
+            return bceloss.mean()
+        else:
+            return bceloss
 
 class FocalBCE():
     def __init__(self, config, device):
@@ -128,8 +135,8 @@ class BCElossAmp():
         return loss
 
 class SmoothL1():
-    def __init__(self):
-        self.baseloss = nn.SmoothL1Loss(beta=1./9, reduction='sum')
+    def __init__(self, reduction='sum'):
+        self.baseloss = nn.SmoothL1Loss(beta=1./9, reduction=reduction)
     def __call__(self, dt, gt):
         return self.baseloss(dt, gt)
 
