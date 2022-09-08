@@ -4,6 +4,7 @@ import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
 from modelzoo.yolov3 import Yolov3
+#from modelzoo.yolo import Yolov3
 from modelzoo.retinanet import RetinaNet
 
 class BuildModel():

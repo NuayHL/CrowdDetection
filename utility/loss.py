@@ -36,6 +36,54 @@ class GeneralLoss():
         pos_num_samples = dt_list[0].shape[1]
         # pos_neg_num_samples = dt_list[-1].shape[1]
         losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) * self.loss_weight[-1]
+        if pos_num_samples != 0:
+            for loss, loss_name, loss_weight, reg_dt, reg_gt in \
+                    zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
+                losses[loss_name] = loss(reg_dt,reg_gt) * loss_weight
+        else:
+            for loss_name in self.reg_loss_type:
+                losses[loss_name] = self.zero
+        fin_loss = 0
+        for loss in losses.values():
+            fin_loss += loss
+        for key in losses:
+            losses[key] = losses[key].detach().cpu().item()
+        return fin_loss, losses
+
+class GeneralLoss_test():
+    '''
+    reg loss: smooth l1
+    cls loss: bce + focal
+    '''
+    def __init__(self, config, device, reduction='sum'):
+        self.config = config
+        self.device = device
+        self.reduction = reduction
+        self.loss_parse()
+        self.loss_weight = config.loss.weight
+        self.zero = torch.tensor(0, dtype=torch.float32).to(device)
+
+
+    def loss_parse(self):
+        self.reg_loss = []
+        self.reg_loss_type = self.config.loss.reg_type
+        for method in self.reg_loss_type:
+            if method in ['ciou', 'diou', 'giou', 'siou']:
+                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction))
+            if method in ['l1']:
+                self.reg_loss.append(SmoothL1(self.reduction))
+
+        self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+
+    def __call__(self, dt_list, gt_list):
+        '''
+        dt_list:[reg_loss,..., cls_loss]
+        gt_list:[reg_loss,..., cls_loss]
+        '''
+        losses = {}
+        pos_num_samples = dt_list[0].shape[1]
+        # pos_neg_num_samples = dt_list[-1].shape[1]
+        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) * self.loss_weight[-1]
 
         # cal obj loss independently
         if len(dt_list) - len(self.reg_loss) == 2:
