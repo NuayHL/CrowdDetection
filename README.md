@@ -2,6 +2,7 @@
 
 This project aims to firstly reproduce the YOLO series via pytorch
 
+Begin reproducing the YOLOX
 
 #### Environment Setting
 - Base Enviroment
