@@ -2,7 +2,7 @@ data:
   annotation_format: x1y1wh
 
   mixup: 0.25
-  mosaic: 1.0
+  mosaic: 0.5
   fliplr: 0.5
   flipud: 0.0
   hsv_h: 0.0138

@@ -23,7 +23,7 @@ class GeneralLoss():
             if method in ['l1']:
                 self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCElogits(self.config, self.device)
+        self.cls_loss = FocalBCElogits(self.config, self.device, reduction='sum')
 
     def __call__(self, dt_list, gt_list):
         '''

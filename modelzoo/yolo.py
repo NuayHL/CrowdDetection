@@ -56,8 +56,9 @@ class Yolov3(nn.Module):
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
-        cls_dt = dt[:, 5:, :]
-        obj_dt = dt[:, 4, :]
+        num_of_class = dt.shape[1]-5
+        cls_dt = dt[:, 5:, :].clone()
+        obj_dt = dt[:, 4, :].clone()
         ori_reg_dt = dt[:, :4, :]
         shift_dt = self.get_shift_bbox(ori_reg_dt)
 
@@ -105,6 +106,8 @@ class Yolov3(nn.Module):
             else:
                 dt.append(ori_reg_dt.view(4,-1)[:, pos_mask])
                 gt.append(torch.cat(l1_gt, dim=1))
+        obj_dt = obj_dt.view(1,-1)
+        cls_dt = obj_dt.view(1,-1)
         dt.append(obj_dt)
         gt.append(torch.cat(obj_gt,dim=0))
         dt.append(cls_dt[:, pos_mask])
