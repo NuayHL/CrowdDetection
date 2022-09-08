@@ -31,7 +31,7 @@ git clone https://github.com/NuayHL/odcore.git
 
 - Infer through following command
 ```
-python infer.py --ckpt-file YOLOv3_640.pth --conf-file cfgs/yolov3 --img your_img.jpg
+python infer.py --ckpt-file YOLOv3_640.pth --conf-file cfgs/yolov3 --img imgs/val_1.png
 ```
 - Replace the image name to infer other images
 
