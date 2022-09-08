@@ -7,25 +7,23 @@ class GeneralLoss():
     reg loss: smooth l1
     cls loss: bce + focal
     '''
-    def __init__(self, config, device, reduction='sum'):
+    def __init__(self, config, device):
         self.config = config
         self.device = device
-        self.reduction = reduction
         self.loss_parse()
         self.loss_weight = config.loss.weight
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
-
 
     def loss_parse(self):
         self.reg_loss = []
         self.reg_loss_type = self.config.loss.reg_type
         for method in self.reg_loss_type:
             if method in ['ciou', 'diou', 'giou', 'siou']:
-                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction))
+                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction='sum'))
             if method in ['l1']:
-                self.reg_loss.append(SmoothL1(self.reduction))
+                self.reg_loss.append(SmoothL1())
 
-        self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+        self.cls_loss = FocalBCElogits(self.config, self.device)
 
     def __call__(self, dt_list, gt_list):
         '''
