@@ -36,6 +36,11 @@ class GeneralLoss():
         pos_num_samples = dt_list[0].shape[1]
         # pos_neg_num_samples = dt_list[-1].shape[1]
         losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) * self.loss_weight[-1]
+
+        # cal obj loss independently
+        if len(dt_list) - len(self.reg_loss) == 2:
+            losses['obj'] = self.cls_loss(dt_list[-2], gt_list[-2]) * self.loss_weight[-2]
+
         if pos_num_samples != 0:
             for loss, loss_name, loss_weight, reg_dt, reg_gt in \
                     zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):

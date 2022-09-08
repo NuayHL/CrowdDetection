@@ -37,7 +37,7 @@ class Yolov3(nn.Module):
         self.device = device
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = AnchorAssign(self.config, device)
-        self.loss = GeneralLoss(self.config, device)
+        self.loss = GeneralLoss(self.config, device, reduction='mean')
         if self.config.model.use_anchor:
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
             self.num_of_proposal = self.anchs.shape[0]
@@ -77,32 +77,40 @@ class Yolov3(nn.Module):
             pos_mask_ib = torch.gt(assign_result_ib, 0.5)
             pos_mask.append(pos_mask_ib)
 
-            label_pos_generate = (assign_result_ib[pos_mask] - 1).long()
+            label_pos_generate = (assign_result_ib[pos_mask_ib] - 1).long()
 
             shift_gt_ib = gt_ib[label_pos_generate, :4].t()
             shift_gt.append(shift_gt_ib)
             if self.use_l1:
                 l1_gt_ib = gt_ib[label_pos_generate, :4]
-                l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
-                l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
-                l1_gt_ib = l1_gt_ib.t()
+                l1_gt_ib = self.get_l1_target(l1_gt_ib, pos_mask_ib)
                 l1_gt.append(l1_gt_ib)
             cls_gt_ib = torch.zeros((self.config.data.numofclasses, self.num_of_proposal),
                                     dtype=torch.float32).to(self.device)
-            cls_gt_ib[gt_ib[label_pos_generate,4].long(), pos_mask] = 1
-            cls_gt_ib = cls_gt_ib[:, pos_mask]
+            cls_gt_ib[gt_ib[label_pos_generate,4].long(), pos_mask_ib] = 1
+            cls_gt_ib = cls_gt_ib[:, pos_mask_ib]
             cls_gt.append(cls_gt_ib)
 
             obj_gt_ib = assign_result_ib.clamp(0, 1)
             obj_gt.append(obj_gt_ib)
 
-        pos_mask = torch.
-        ## view bbox ?
+        pos_mask = torch.cat(pos_mask, dim=0)
 
-        num_pos_samples = max(num_pos_samples.item(),1)
-        for key in fin_loss_dict:
-            fin_loss_dict[key] /= num_pos_samples
-        return fin_loss/num_pos_samples, fin_loss_dict
+        dt = []
+        gt = []
+        for loss in self.loss_order:
+            if loss == 'iou':
+                dt.append(shift_dt.view(4,-1)[:, pos_mask])
+                gt.append(torch.cat(shift_gt, dim=1))
+            else:
+                dt.append(ori_reg_dt.view(4,-1)[:, pos_mask])
+                gt.append(torch.cat(l1_gt, dim=1))
+        dt.append(obj_dt)
+        gt.append(torch.cat(obj_gt,dim=0))
+        dt.append(cls_dt[:, pos_mask])
+        gt.append(torch.cat(cls_gt,dim=0))
+
+        return self.loss(dt, gt)
 
     def inferencing(self, sample):
         dt = self.core(sample['imgs'])
@@ -135,8 +143,16 @@ class Yolov3(nn.Module):
             shift_box[:, :2] = anchors[:, :2] + ori_box[:, :2] * anchors[:, 2:]
         else:
             raise NotImplementedError
-
         return shift_box
+
+    def get_l1_target(self, gt_pos_mask_generate, pos_mask):
+        if self.config.model.use_anchor:
+            l1_gt_ib = gt_pos_mask_generate
+            l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
+            l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
+        else:
+            raise NotImplementedError
+        return l1_gt_ib.t()
 
     @staticmethod
     def coco_parse_result(results):
