@@ -1,6 +1,6 @@
 ## Crowd ObjectDetection based on YOLO
 
-This project aims to reproduce the YOLO series via pytorch
+This project aims to firstly reproduce the YOLO series via pytorch
 
 
 #### Environment Setting
@@ -28,7 +28,7 @@ git clone https://github.com/NuayHL/odcore.git
 
 - Infer through following command
 ```
-python infer.py --ckpt-file YOLOv3_640.pth --conf-file YOLOv3.yaml --img img_fountain.jpg
+python infer.py --ckpt-file YOLOv3_640.pth --conf-file cfgs/yolov3 --img your_img.jpg
 ```
 - Replace the image name to infer other images
 
@@ -50,21 +50,21 @@ CrowdDetection
             |--annotation_train.odgt
             |--annotation_val.odgt
 ```
-- Run `tran_CrowdHuman.py`
+- Run `utility/tran_CrowdHuman.py` at root path
 - Run command
   
-    `python train.py --conf-file YOLOv3.yaml --batch-size 32 --workers 8 --device 0`
+    `python train.py --conf-file cfgs/yolov3 --batch-size 32 --workers 8 --device 0`
 #### Model Evaluation
 
 - CrowdHuman dataset required ! 
 ```
-python eval.py --conf-file YOLOv3.yaml --ckpt-file YOLOv3_640.pth --workers 8 --batch-size 32 --device 0 
+python eval.py --conf-file cfgs/yolov3 --ckpt-file YOLOv3_640.pth --workers 8 --batch-size 32 --device 0 
 ```
 - Replace the --ckpt-file to other .pth files to evaluate them
 
 #### Loss visualization
 ```
-python drawloss.py --loss-log YOLOv3_siou_loss.log
+python drawloss.py --loss-log exp_loss.log
 ```
 - Replace the --loss-log to other _loss.log files to visualize them
 
