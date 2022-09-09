@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
-from utility.loss import GeneralLoss_test, updata_loss_dict
+from utility.loss import GeneralLoss_fix, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
 
@@ -37,7 +37,7 @@ class YoloX(nn.Module):
         self.device = device
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = AnchorAssign(self.config, device)
-        self.loss = GeneralLoss_test(self.config, device, reduction='mean')
+        self.loss = GeneralLoss_fix(self.config, device, reduction='mean')
         if self.config.model.use_anchor:
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
             self.num_of_proposal = self.anchs.shape[0]

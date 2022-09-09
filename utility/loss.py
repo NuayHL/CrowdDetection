@@ -48,7 +48,7 @@ class GeneralLoss():
             losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
-class GeneralLoss_test():
+class GeneralLoss_fix():
     '''
     reg loss: smooth l1
     cls loss: bce + focal
@@ -58,42 +58,47 @@ class GeneralLoss_test():
         self.device = device
         self.reduction = reduction
         self.loss_parse()
-        self.loss_weight = config.loss.weight
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
 
 
     def loss_parse(self):
-        self.reg_loss = []
-        self.reg_loss_type = self.config.loss.reg_type
-        for method in self.reg_loss_type:
+        self.loss_weight = self.config.loss.weight
+        assert len(self.loss_weight) == 4
+        assert len(self.config.loss.reg_type) == 2
+        iou_flag = False
+        l1_flag = False
+        for method in self.config.loss.reg_type:
             if method in ['ciou', 'diou', 'giou', 'siou']:
-                self.reg_loss.append(IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction))
-            if method in ['l1']:
-                self.reg_loss.append(SmoothL1(self.reduction))
+                iou_flag = True
+                self.iou_type = method
+                self.iou_loss = IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction)
+            elif method in ['l1']:
+                l1_flag = True
+                self.l1_loss = SmoothL1(self.reduction)
+            else: raise NotImplementedError('Invalid reg loss type %s'%method)
+        assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
 
         self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+        self.obj_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
 
     def __call__(self, dt_list, gt_list):
         '''
-        dt_list:[reg_loss,..., cls_loss]
-        gt_list:[reg_loss,..., cls_loss]
+        dt_list:[iou_loss, l1_loss, obj_loss, cls_loss]
+        gt_list:[iou_loss, l1_loss, obj_loss, cls_loss]
         '''
         losses = {}
-        pos_num_samples = dt_list[0].shape[1]
-        # pos_neg_num_samples = dt_list[-1].shape[1]
-        losses['cls'] = self.cls_loss(dt_list[-1], gt_list[-1]) * self.loss_weight[-1]
+        categories, pos_num_samples = dt_list[-1].shape
 
-        # cal obj loss independently
-        if len(dt_list) - len(self.reg_loss) == 2:
-            losses['obj'] = self.cls_loss(dt_list[-2], gt_list[-2]) * self.loss_weight[-2]
+        losses['obj'] = self.obj_loss(dt_list[2], gt_list[2]) * self.loss_weight[2]
 
         if pos_num_samples != 0:
-            for loss, loss_name, loss_weight, reg_dt, reg_gt in \
-                    zip(self.reg_loss, self.reg_loss_type, self.loss_weight, dt_list, gt_list):
-                losses[loss_name] = loss(reg_dt,reg_gt) * loss_weight
+            losses['cls'] = self.cls_loss(dt_list[3], gt_list[3]) * self.loss_weight[3] * categories
+            losses[self.iou_type] = self.iou_loss(dt_list[0], gt_list[0]) * self.loss_weight[0]
+            losses['l1'] = self.l1_loss(dt_list[1], gt_list[1]) * self.loss_weight[1]
         else:
-            for loss_name in self.reg_loss_type:
-                losses[loss_name] = self.zero
+            losses['cls'] = self.zero
+            losses[self.iou_type] = self.zero
+            losses['l1'] = self.zero
         fin_loss = 0
         for loss in losses.values():
             fin_loss += loss
