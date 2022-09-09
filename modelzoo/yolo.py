@@ -96,22 +96,21 @@ class YoloX(nn.Module):
             obj_gt.append(obj_gt_ib)
 
         pos_mask = torch.cat(pos_mask, dim=0)
-
         dt = []
         gt = []
         for loss in self.loss_order:
             if loss == 'iou':
-                dt.append(shift_dt.view(4,-1)[:, pos_mask])
+                dt.append(shift_dt.contiguous().view(4,-1)[:, pos_mask])
                 gt.append(torch.cat(shift_gt, dim=1))
             else:
-                dt.append(ori_reg_dt.view(4,-1)[:, pos_mask])
+                dt.append(ori_reg_dt.contiguous().view(4,-1)[:, pos_mask])
                 gt.append(torch.cat(l1_gt, dim=1))
-        obj_dt = obj_dt.view(1,-1)
-        cls_dt = obj_dt.view(1,-1)
+        obj_dt = obj_dt.view(-1)
+        cls_dt = cls_dt.view(num_of_class,-1)
         dt.append(obj_dt)
         gt.append(torch.cat(obj_gt,dim=0))
         dt.append(cls_dt[:, pos_mask])
-        gt.append(torch.cat(cls_gt,dim=0))
+        gt.append(torch.cat(cls_gt,dim=1))
 
         return self.loss(dt, gt)
 
@@ -140,9 +139,9 @@ class YoloX(nn.Module):
 
     def get_shift_bbox(self, ori_box:torch.Tensor):
         if self.config.model.use_anchor:
-            shift_box = ori_box.clone()
+            shift_box = ori_box.clone().to(torch.float32)
             anchors = torch.tile(self.anchs.t(), (shift_box.shape[0], 1, 1))
-            shift_box[:, 2:] = anchors[:, 2:] * torch.exp(ori_box[:, 2:4].clamp(max=50))
+            shift_box[:, 2:] = anchors[:, 2:] * torch.exp(ori_box[:, 2:4].clamp(max=25))
             shift_box[:, :2] = anchors[:, :2] + ori_box[:, :2] * anchors[:, 2:]
         else:
             raise NotImplementedError
