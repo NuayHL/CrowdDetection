@@ -9,7 +9,7 @@ loss:
   focal_gamma: 2.0
   reg_type: ['giou', 'l1']
   use_focal: False
-  weight: [5.0, 1.0, 1.0 ,1.0]
+  weight: [1.0, 1.0, 5.0 ,1.0]
 model:
   anchor_ratios: [2, 3]
   anchor_scales: [0.75, 1]

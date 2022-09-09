@@ -37,7 +37,6 @@ class YoloX(nn.Module):
         self.device = device
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = AnchorAssign(self.config, device)
-        self.loss = GeneralLoss_fix(self.config, device, reduction='mean')
         if self.config.model.use_anchor:
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
             self.num_of_proposal = self.anchs.shape[0]
@@ -45,14 +44,10 @@ class YoloX(nn.Module):
             raise NotImplementedError('Current Yolo do not support anchor free')
         assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
-        self.loss_order = []
-        self.use_l1 = False
-        for type in self.config.loss.reg_type:
-            if 'l1' in type:
-                self.loss_order.append('l1')
-                self.use_l1 = True
-            if 'iou' in type: self.loss_order.append('iou')
-        assert 'iou' in self.loss_order, 'Please adding iou-type loss'
+        self.use_l1 = True if 'l1' in self.config.loss.reg_type else False
+
+        assert True in ['iou' in loss for loss in self.config.loss.reg_type], 'Please adding iou-type loss'
+        self.loss = GeneralLoss_fix(self.config, device, reduction='mean')
 
     def training_loss(self,sample):
         dt = self.core(sample['imgs'])
@@ -98,19 +93,17 @@ class YoloX(nn.Module):
         pos_mask = torch.cat(pos_mask, dim=0)
         dt = []
         gt = []
-        for loss in self.loss_order:
-            if loss == 'iou':
-                dt.append(shift_dt.contiguous().view(4,-1)[:, pos_mask])
-                gt.append(torch.cat(shift_gt, dim=1))
-            else:
-                dt.append(ori_reg_dt.contiguous().view(4,-1)[:, pos_mask])
-                gt.append(torch.cat(l1_gt, dim=1))
         obj_dt = obj_dt.view(-1)
         cls_dt = cls_dt.view(num_of_class,-1)
         dt.append(obj_dt)
         gt.append(torch.cat(obj_gt,dim=0))
         dt.append(cls_dt[:, pos_mask])
         gt.append(torch.cat(cls_gt,dim=1))
+        dt.append(shift_dt.contiguous().view(4,-1)[:, pos_mask])
+        gt.append(torch.cat(shift_gt, dim=1))
+        if self.use_l1:
+            dt.append(ori_reg_dt.contiguous().view(4,-1)[:, pos_mask])
+            gt.append(torch.cat(l1_gt, dim=1))
 
         return self.loss(dt, gt)
 

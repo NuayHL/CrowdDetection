@@ -5,7 +5,7 @@ training:
   eval_interval: 20
   final_epoch: 300
   last_no_mosaic: 0
-  warm_up_steps: 500
+  warm_up_steps: 1000
   using_autocast: True
   optimizer:
     lr: 0.005

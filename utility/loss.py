@@ -79,22 +79,22 @@ class GeneralLoss_fix():
         assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
 
         self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
-        self.obj_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+        self.obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
 
     def __call__(self, dt_list, gt_list):
         '''
-        dt_list:[iou_loss, l1_loss, obj_loss, cls_loss]
-        gt_list:[iou_loss, l1_loss, obj_loss, cls_loss]
+        dt_list:[obj_loss, cls_loss, iou_loss, l1_loss]
+        gt_list:[obj_loss, cls_loss, iou_loss, l1_loss]
         '''
         losses = {}
         categories, pos_num_samples = dt_list[-1].shape
 
-        losses['obj'] = self.obj_loss(dt_list[2], gt_list[2]) * self.loss_weight[2]
+        losses['obj'] = self.obj_loss(dt_list[0], gt_list[0]) * self.loss_weight[0] / pos_num_samples
 
         if pos_num_samples != 0:
-            losses['cls'] = self.cls_loss(dt_list[3], gt_list[3]) * self.loss_weight[3] * categories
-            losses[self.iou_type] = self.iou_loss(dt_list[0], gt_list[0]) * self.loss_weight[0]
-            losses['l1'] = self.l1_loss(dt_list[1], gt_list[1]) * self.loss_weight[1]
+            losses['cls'] = self.cls_loss(dt_list[1], gt_list[1]) * self.loss_weight[1] * categories
+            losses[self.iou_type] = self.iou_loss(dt_list[2], gt_list[2]) * self.loss_weight[2]
+            losses['l1'] = self.l1_loss(dt_list[3], gt_list[3]) * self.loss_weight[3]
         else:
             losses['cls'] = self.zero
             losses[self.iou_type] = self.zero
