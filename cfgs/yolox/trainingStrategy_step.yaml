@@ -4,7 +4,7 @@ training:
   workers: 8
   eval_interval: 20
   final_epoch: 300
-  last_no_mosaic: 15
+  last_no_mosaic: 0
   warm_up_steps: 500
   using_autocast: True
   optimizer:
@@ -16,7 +16,7 @@ training:
     warm_up_init_momentum: 0.8
     weight_decay: 0.0005
   schedular:
-    type: detail_cosine
+    type: cosine
     extra: [{"lrf": 0.01}]
   train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
   train_img_path: CrowdHuman/Images_train

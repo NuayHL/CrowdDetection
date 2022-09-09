@@ -10,10 +10,10 @@ from utility.result import Result
 # model.set(args, device)
 # model.coco_parse_result(results) results: List of prediction
 
-class Yolov3(nn.Module):
+class YoloX(nn.Module):
     '''4 + 1 + classes'''
     def __init__(self, config, backbone, neck, head):
-        super(Yolov3, self).__init__()
+        super(YoloX, self).__init__()
         self.config = config
         self.backbone = backbone
         self.neck = neck

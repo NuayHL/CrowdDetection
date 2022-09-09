@@ -17,7 +17,7 @@ model:
   assignment_iou_type: iou
   assignment_type: default
   fpnlevels: [3, 4, 5]
-  name: yolov3
+  name: yolox
   backbone: cspdarknet
   head: yolox_head
   neck: pafpn

@@ -4,7 +4,7 @@ import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
 from modelzoo.yolov3 import Yolov3
-#from modelzoo.yolo import Yolov3
+from modelzoo.yolo import YoloX
 from modelzoo.retinanet import RetinaNet
 
 class BuildModel():
@@ -55,6 +55,8 @@ class BuildModel():
             return Yolov3
         elif self.model_name == 'retinanet':
             return RetinaNet
+        elif self.model_name == 'yolox':
+            return YoloX
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
 
