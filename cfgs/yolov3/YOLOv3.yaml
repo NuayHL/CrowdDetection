@@ -45,4 +45,4 @@ training:
 inference:
   iou_thres: 0.6
   nms_type: nms
-  obj_thres: 0.75
+  obj_thres: 0.5
