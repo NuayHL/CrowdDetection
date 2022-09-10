@@ -93,16 +93,14 @@ class YoloX(nn.Module):
         pos_mask = torch.cat(pos_mask, dim=0)
         dt = {}
         gt = {}
-        obj_dt = obj_dt.view(-1)
-        cls_dt = cls_dt.view(num_of_class,-1)
-        dt['obj'] = obj_dt
+        dt['obj'] = obj_dt.view(-1)
         gt['obj'] = torch.cat(obj_gt,dim=0)
-        dt['cls'] = cls_dt[:, pos_mask]
+        dt['cls'] = cls_dt.permute(1,0,2).reshape(num_of_class,-1)[:, pos_mask]
         gt['cls'] = torch.cat(cls_gt,dim=1)
-        dt['iou'] = shift_dt.contiguous().view(4,-1)[:, pos_mask]
+        dt['iou'] = shift_dt.permute(1,0,2).reshape(4,-1)[:, pos_mask]
         gt['iou'] = torch.cat(shift_gt, dim=1)
         if self.use_l1:
-            dt['l1'] = ori_reg_dt.contiguous().view(4,-1)[:, pos_mask]
+            dt['l1'] = ori_reg_dt.permute(1,0,2).reshape(4,-1)[:, pos_mask]
             gt['l1'] = torch.cat(l1_gt, dim=1)
 
         return self.loss(dt, gt)
