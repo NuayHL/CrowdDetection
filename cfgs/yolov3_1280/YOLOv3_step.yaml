@@ -11,6 +11,7 @@ loss:
   use_focal: False
   weight: [5.0, 5.0, 0.3]
 model:
+  name: yolov3
   anchor_ratios: [2, 3]
   anchor_scales: [0.75, 1]
   assignment_iou_threshold: 0.5
@@ -19,7 +20,6 @@ model:
   backbone: darknet53
   fpnlevels: [3, 4, 5]
   head: yolov3_head
-  name: yolov3
   neck: yolov3_neck
   use_anchor: True
 seed: None

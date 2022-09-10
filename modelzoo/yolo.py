@@ -50,11 +50,11 @@ class YoloX(nn.Module):
         self.loss = GeneralLoss_fix(self.config, device, reduction='mean')
 
     def training_loss(self,sample):
-        dt = self.core(sample['imgs'])
+        dt = self.core(sample['imgs']) #[B, 4+1+cls, n_anchors_all]
         num_of_class = dt.shape[1]-5
-        cls_dt = dt[:, 5:, :].clone()
-        obj_dt = dt[:, 4, :].clone()
-        ori_reg_dt = dt[:, :4, :]
+        cls_dt = dt[:, 5:, :].clone()  #[B, cls, n_anchors_all]
+        obj_dt = dt[:, 4, :].clone()   #[B, n_anchors_all]
+        ori_reg_dt = dt[:, :4, :]      #[B, 4, n_anchors_all]
         shift_dt = self.get_shift_bbox(ori_reg_dt)
 
         assign_result, gt = self.assignment.assign(sample['annss'])
