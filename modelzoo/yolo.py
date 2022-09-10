@@ -91,19 +91,19 @@ class YoloX(nn.Module):
             obj_gt.append(obj_gt_ib)
 
         pos_mask = torch.cat(pos_mask, dim=0)
-        dt = []
-        gt = []
+        dt = {}
+        gt = {}
         obj_dt = obj_dt.view(-1)
         cls_dt = cls_dt.view(num_of_class,-1)
-        dt.append(obj_dt)
-        gt.append(torch.cat(obj_gt,dim=0))
-        dt.append(cls_dt[:, pos_mask])
-        gt.append(torch.cat(cls_gt,dim=1))
-        dt.append(shift_dt.contiguous().view(4,-1)[:, pos_mask])
-        gt.append(torch.cat(shift_gt, dim=1))
+        dt['obj'] = obj_dt
+        gt['obj'] = torch.cat(obj_gt,dim=0)
+        dt['cls'] = cls_dt[:, pos_mask]
+        gt['cls'] = torch.cat(cls_gt,dim=1)
+        dt['iou'] = shift_dt.contiguous().view(4,-1)[:, pos_mask]
+        gt['iou'] = torch.cat(shift_gt, dim=1)
         if self.use_l1:
-            dt.append(ori_reg_dt.contiguous().view(4,-1)[:, pos_mask])
-            gt.append(torch.cat(l1_gt, dim=1))
+            dt['l1'] = ori_reg_dt.contiguous().view(4,-1)[:, pos_mask]
+            gt['l1'] = torch.cat(l1_gt, dim=1)
 
         return self.loss(dt, gt)
 

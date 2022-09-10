@@ -49,10 +49,6 @@ class GeneralLoss():
         return fin_loss, losses
 
 class GeneralLoss_fix():
-    '''
-    reg loss: smooth l1
-    cls loss: bce + focal
-    '''
     def __init__(self, config, device, reduction='sum'):
         self.config = config
         self.device = device
@@ -60,10 +56,8 @@ class GeneralLoss_fix():
         self.loss_parse()
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
 
-
     def loss_parse(self):
         self.loss_weight = self.config.loss.weight
-        assert len(self.loss_weight) == 4
         assert len(self.config.loss.reg_type) == 2
         iou_flag = False
         l1_flag = False
@@ -77,24 +71,25 @@ class GeneralLoss_fix():
                 self.l1_loss = SmoothL1(self.reduction)
             else: raise NotImplementedError('Invalid reg loss type %s'%method)
         assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
+        assert len(self.loss_weight) == 4,'Please set loss weight for [obj_loss, cls_loss, iou_loss, l1_loss]'
 
         self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
         self.obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
 
     def __call__(self, dt_list, gt_list):
         '''
-        dt_list:[obj_loss, cls_loss, iou_loss, l1_loss]
-        gt_list:[obj_loss, cls_loss, iou_loss, l1_loss]
+        dt_dict.keys() = [obj, cls, iou, l1]
+        gt_dict.keys() = [obj, cls, iou, l1]
         '''
         losses = {}
-        categories, pos_num_samples = dt_list[-1].shape
+        categories, pos_num_samples = dt_list['cls'].shape
 
-        losses['obj'] = self.obj_loss(dt_list[0], gt_list[0]) * self.loss_weight[0] / pos_num_samples
+        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / pos_num_samples
 
         if pos_num_samples != 0:
-            losses['cls'] = self.cls_loss(dt_list[1], gt_list[1]) * self.loss_weight[1] * categories
-            losses[self.iou_type] = self.iou_loss(dt_list[2], gt_list[2]) * self.loss_weight[2]
-            losses['l1'] = self.l1_loss(dt_list[3], gt_list[3]) * self.loss_weight[3]
+            losses['cls'] = self.cls_loss(dt_list['cls'], gt_list['cls']) * self.loss_weight[1] * categories
+            losses[self.iou_type] = self.iou_loss(dt_list['iou'], gt_list['iou']) * self.loss_weight[2]
+            losses['l1'] = self.l1_loss(dt_list['l1'], gt_list['l1']) * self.loss_weight[3]
         else:
             losses['cls'] = self.zero
             losses[self.iou_type] = self.zero
