@@ -39,6 +39,7 @@ anchor_points = anchor.gen_points(singleBatch=True)
 x_anchor_center = anchor_points[:,0]
 y_anchor_center = anchor_points[:,1]
 
+print(anchor.gen_stride())
 from odcore.utils.misc import xywh_x1y1x2y2
 
 def get_in_boxes_info(gt_ib, anchor, stride):
@@ -61,20 +62,14 @@ def get_in_boxes_info(gt_ib, anchor, stride):
     center_radius = 2.5
 
     gt_bboxes_per_image_l = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
-    gt_bboxes_per_image_r = (gt_ib[:, 0]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) + center_radius * expanded_strides_per_image.unsqueeze(0)
-    gt_bboxes_per_image_t = (gt_ib[:, 1]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) - center_radius * expanded_strides_per_image.unsqueeze(0)
-    gt_bboxes_per_image_b = (gt_ib[:, 1]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) + center_radius * expanded_strides_per_image.unsqueeze(0)
+    gt_bboxes_per_image_r = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
+    gt_bboxes_per_image_t = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
+    gt_bboxes_per_image_b = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
 
-    c_l = x_centers_per_image - gt_bboxes_per_image_l
-    c_r = gt_bboxes_per_image_r - x_centers_per_image
-    c_t = y_centers_per_image - gt_bboxes_per_image_t
-    c_b = gt_bboxes_per_image_b - y_centers_per_image
+    c_l = anchor[:,:,0] - gt_bboxes_per_image_l
+    c_r = gt_bboxes_per_image_r - anchor[:,:,0]
+    c_t = anchor[:,:,1] - gt_bboxes_per_image_t
+    c_b = gt_bboxes_per_image_b - anchor[:,:,1]
     center_deltas = torch.stack([c_l, c_t, c_r, c_b], 2)
     is_in_centers = center_deltas.min(dim=-1).values > 0.0
     is_in_centers_all = is_in_centers.sum(dim=0) > 0

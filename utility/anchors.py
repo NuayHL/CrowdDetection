@@ -34,7 +34,7 @@ class Anchor():
         allAnchors = np.tile(allAnchors, (self.config.training.batch_size, 1, 1))
         return allAnchors
 
-    def gen_points(self,singleBatch):
+    def gen_points(self,singleBatch=False):
         # formate = xy
         allPoints = np.zeros((0, 2)).astype(np.float32)
         for idx, p in enumerate(self.fpnlevels):
@@ -51,6 +51,21 @@ class Anchor():
         # batchedAnchor return Batchsize X total_anchor_number X 4
         allPoints = np.tile(allPoints, (self.config.training.batch_size, 1, 1))
         return allPoints
+
+    def gen_stride(self, singleBatch=True):
+        num_in_each_level = np.ones(len(self.fpnlevels))
+        for id, i in enumerate(self.fpnlevels):
+            temp = self.config.data.input_width * self.config.data.input_height / (2 ** (i+1))
+            if self.config.model.use_anchor:
+                temp *= len(self.scales) * len(self.ratios)
+            num_in_each_level[id] *= temp
+        stride = np.ones(num_in_each_level.sum())
+        start_index = 0
+        for i, num in zip(self.fpnlevels, num_in_each_level):
+            stride[start_index: start_index+num] *= 2**i
+            start_index += num
+        if singleBatch: return stride
+        return np.tile(stride, (self.config.training.batch_size, 1))
 
 def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''
