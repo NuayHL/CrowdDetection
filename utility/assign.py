@@ -13,7 +13,6 @@ class AnchorAssign():
         self.using_ignored_input = config.data.ignored_input
         self.device = device
         # change anchor format from xywh to x1y1x2y2
-        #self.anchs = torch.from_numpy(generateAnchors(config,singleBatch=True)).float().to(device)
         genAchor = Anchor(config)
         self.anchs = torch.from_numpy(genAchor.gen_Bbox(singleBatch=True)).float().to(device)
         self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
@@ -126,92 +125,60 @@ class AnchFreeAssign():
         pass
 
 class SimOTA():
-    def __init__(self):
-        pass
+    def __init__(self,config):
+        self.config = config
+        anchor = Anchor(config)
+        self.anch = torch.from_numpy(anchor.gen_points())
 
     def __call__(self, grid, gt):
         pass
 
-def get_in_boxes_info(
-        gt_bboxes_per_image,
-        expanded_strides,
-        x_shifts,
-        y_shifts,
-        total_num_anchors,
-        num_gt,
-):
-    expanded_strides_per_image = expanded_strides[0]
-    x_shifts_per_image = x_shifts[0] * expanded_strides_per_image
-    y_shifts_per_image = y_shifts[0] * expanded_strides_per_image
-    x_centers_per_image = (
-        (x_shifts_per_image + 0.5 * expanded_strides_per_image)
-            .unsqueeze(0)
-            .repeat(num_gt, 1)
-    )  # [n_anchor] -> [n_gt, n_anchor]
-    y_centers_per_image = (
-        (y_shifts_per_image + 0.5 * expanded_strides_per_image)
-            .unsqueeze(0)
-            .repeat(num_gt, 1)
-    )
+    @staticmethod
+    def get_in_boxes_info(gt_ib, anchor, stride):
+        """
+        :param gt_ib: [num_gt, 4]
+        :param anchor: [num_anchor, 2]  2:x, y
+        :param stride: [num_anchor]
+        :return:
+        """
+        total_num_anchors = len(anchor)
+        num_gt = len(gt_ib)
 
-    gt_bboxes_per_image_l = (
-        (gt_bboxes_per_image[:, 0] - 0.5 * gt_bboxes_per_image[:, 2])
-            .unsqueeze(1)
-            .repeat(1, total_num_anchors)
-    )
-    gt_bboxes_per_image_r = (
-        (gt_bboxes_per_image[:, 0] + 0.5 * gt_bboxes_per_image[:, 2])
-            .unsqueeze(1)
-            .repeat(1, total_num_anchors)
-    )
-    gt_bboxes_per_image_t = (
-        (gt_bboxes_per_image[:, 1] - 0.5 * gt_bboxes_per_image[:, 3])
-            .unsqueeze(1)
-            .repeat(1, total_num_anchors)
-    )
-    gt_bboxes_per_image_b = (
-        (gt_bboxes_per_image[:, 1] + 0.5 * gt_bboxes_per_image[:, 3])
-            .unsqueeze(1)
-            .repeat(1, total_num_anchors)
-    )
+        anchor = anchor.unsqueeze(0).repeat(num_gt, 1, 1)
+        gt_l = (gt_ib[:, 0] - gt_ib[:, 2] * 0.5).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_r = (gt_ib[:, 0] + gt_ib[:, 2] * 0.5).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_t = (gt_ib[:, 1] - gt_ib[:, 3] * 0.5).unsqueeze(1).repeat(1, total_num_anchors)
+        gt_b = (gt_ib[:, 1] + gt_ib[:, 3] * 0.5).unsqueeze(1).repeat(1, total_num_anchors)
 
-    b_l = x_centers_per_image - gt_bboxes_per_image_l
-    b_r = gt_bboxes_per_image_r - x_centers_per_image
-    b_t = y_centers_per_image - gt_bboxes_per_image_t
-    b_b = gt_bboxes_per_image_b - y_centers_per_image
-    bbox_deltas = torch.stack([b_l, b_t, b_r, b_b], 2)
+        b_l = anchor[:, :, 0] - gt_l
+        b_r = gt_r - anchor[:, :, 0]
+        b_t = anchor[:, :, 1] - gt_t
+        b_b = gt_b - anchor[:, :, 1]
+        bbox_deltas = torch.stack([b_l, b_t, b_r, b_b], 2)
 
-    is_in_boxes = bbox_deltas.min(dim=-1).values > 0.0
-    is_in_boxes_all = is_in_boxes.sum(dim=0) > 0
-    # in fixed center
+        is_in_boxes = bbox_deltas.min(dim=-1).values > 0.0
+        is_in_boxes_all = is_in_boxes.sum(dim=0) > 0
+        # in fixed center
 
-    center_radius = 2.5
+        center_radius = 2.5
 
-    gt_bboxes_per_image_l = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) - center_radius * expanded_strides_per_image.unsqueeze(0)
-    gt_bboxes_per_image_r = (gt_bboxes_per_image[:, 0]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) + center_radius * expanded_strides_per_image.unsqueeze(0)
-    gt_bboxes_per_image_t = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) - center_radius * expanded_strides_per_image.unsqueeze(0)
-    gt_bboxes_per_image_b = (gt_bboxes_per_image[:, 1]).unsqueeze(1).repeat(
-        1, total_num_anchors
-    ) + center_radius * expanded_strides_per_image.unsqueeze(0)
+        gt_bboxes_per_image_l = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
+        gt_bboxes_per_image_r = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
+        gt_bboxes_per_image_t = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
+        gt_bboxes_per_image_b = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
 
-    c_l = x_centers_per_image - gt_bboxes_per_image_l
-    c_r = gt_bboxes_per_image_r - x_centers_per_image
-    c_t = y_centers_per_image - gt_bboxes_per_image_t
-    c_b = gt_bboxes_per_image_b - y_centers_per_image
-    center_deltas = torch.stack([c_l, c_t, c_r, c_b], 2)
-    is_in_centers = center_deltas.min(dim=-1).values > 0.0
-    is_in_centers_all = is_in_centers.sum(dim=0) > 0
+        c_l = anchor[:, :, 0] - gt_bboxes_per_image_l
+        c_r = gt_bboxes_per_image_r - anchor[:, :, 0]
+        c_t = anchor[:, :, 1] - gt_bboxes_per_image_t
+        c_b = gt_bboxes_per_image_b - anchor[:, :, 1]
+        center_deltas = torch.stack([c_l, c_t, c_r, c_b], 2)
+        is_in_centers = center_deltas.min(dim=-1).values > 0.0
+        is_in_centers_all = is_in_centers.sum(dim=0) > 0
 
-    # in boxes and in centers
-    is_in_boxes_anchor = is_in_boxes_all | is_in_centers_all
+        # in boxes and in centers
+        is_in_boxes_anchor = is_in_boxes_all | is_in_centers_all
 
-    is_in_boxes_and_center = (
-            is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor]
-    )
-    return is_in_boxes_anchor, is_in_boxes_and_center
+        is_in_boxes_and_center = (
+                is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor]
+        )
+        return is_in_boxes_anchor, is_in_boxes_and_center

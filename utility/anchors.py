@@ -53,9 +53,9 @@ class Anchor():
         return allPoints
 
     def gen_stride(self, singleBatch=True):
-        num_in_each_level = np.ones(len(self.fpnlevels))
+        num_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
         for id, i in enumerate(self.fpnlevels):
-            temp = self.config.data.input_width * self.config.data.input_height / (2 ** (i+1))
+            temp = self.config.data.input_width * self.config.data.input_height / (2 ** (2*i))
             if self.config.model.use_anchor:
                 temp *= len(self.scales) * len(self.ratios)
             num_in_each_level[id] *= temp
