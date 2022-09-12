@@ -163,9 +163,9 @@ class SimOTA():
                                  * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_())
                 cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
 
-            cost = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
+            cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
 
-
+            self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, gt_ib[:,4], num_gt_ib, in_box_mask_ib)
 
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):
@@ -237,12 +237,12 @@ class SimOTA():
         del topk_ious, dynamic_ks, pos_idx
 
         anchor_matching_gt = matching_matrix.sum(0)
-        if (anchor_matching_gt > 1).sum() > 0:
+        if (anchor_matching_gt > 1).sum() > 0: # deal with the ambigous anchs
             _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
             matching_matrix[:, anchor_matching_gt > 1] *= 0
             matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
         fg_mask_inboxes = matching_matrix.sum(0) > 0
-        num_fg = fg_mask_inboxes.sum().item()
+        num_posi_anch = fg_mask_inboxes.sum().item()
 
         fg_mask[fg_mask.clone()] = fg_mask_inboxes
 
@@ -252,4 +252,4 @@ class SimOTA():
         pred_ious_this_matching = (matching_matrix * pair_wise_ious).sum(0)[
             fg_mask_inboxes
         ]
-        return num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
+        return num_posi_anch, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
