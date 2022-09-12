@@ -249,7 +249,9 @@ class SimOTA():
         matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
         gt_matched_classes = gt_classes[matched_gt_inds]
 
-        pred_ious_this_matching = (matching_matrix * pair_wise_ious).sum(0)[
+        # fix: gt_class no need here
+        # fix: num_posi_anch no need here
+        cls_weight = (matching_matrix * pair_wise_ious).sum(0)[
             fg_mask_inboxes
         ]
-        return num_posi_anch, gt_matched_classes, pred_ious_this_matching, matched_gt_inds
+        return num_posi_anch, gt_matched_classes, cls_weight, matched_gt_inds
