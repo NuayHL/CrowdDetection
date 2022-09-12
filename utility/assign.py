@@ -1,5 +1,6 @@
 # this .py is for the assignment methods
 import torch
+import torch.nn.functional as F
 
 from utility.iou import IOU
 from utility.anchors import Anchor, generateAnchors
@@ -8,17 +9,17 @@ class AnchorAssign():
     def __init__(self, config, device):
         self.cfg = config
         self.assignType = config.model.assignment_type.lower()
-        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh')
+        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
         self.threshold_iou = config.model.assignment_iou_threshold
         self.using_ignored_input = config.data.ignored_input
         self.device = device
-        # change anchor format from xywh to x1y1x2y2
         genAchor = Anchor(config)
         self.anchs = torch.from_numpy(genAchor.gen_Bbox(singleBatch=True)).float().to(device)
-        self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
-        self.anchs[:, 1] = self.anchs[:, 1] - 0.5 * self.anchs[:, 3]
-        self.anchs[:, 2] = self.anchs[:, 0] + self.anchs[:, 2]
-        self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
+        # # change anchor format from xywh to x1y1x2y2
+        # self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
+        # self.anchs[:, 1] = self.anchs[:, 1] - 0.5 * self.anchs[:, 3]
+        # self.anchs[:, 2] = self.anchs[:, 0] + self.anchs[:, 2]
+        # self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
         self.anchs_len = self.anchs.shape[0]
 
     def assign(self, gt, dt=None):
@@ -124,14 +125,47 @@ class AnchFreeAssign():
     def assign(self, gt):
         pass
 
-class SimOTA():
-    def __init__(self,config):
-        self.config = config
-        anchor = Anchor(config)
-        self.anch = torch.from_numpy(anchor.gen_points())
 
-    def __call__(self, grid, gt):
-        pass
+# This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
+class SimOTA():
+    def __init__(self,config, device):
+        self.config = config
+        self.device = device
+        anchorGen = Anchor(config)
+        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
+        self.anch = torch.from_numpy(anchorGen.gen_points(singleBatch=True)).to(device)
+        self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
+        self.num_classes = config.data.numofclasses
+        self.num_anch = len(self.anch)
+
+    def __call__(self, gt, shift_dt):
+        for ib in len(gt):
+            dt_ib = shift_dt[ib]
+            gt_ib = torch.from_numpy(gt[ib]).to(self.device)
+            in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
+                                                                       self.anch,
+                                                                       self.stride)
+            shift_Bbox_pre_ib_ = shift_dt[ib, :4, in_box_mask_ib]
+            dt_obj_ib_ = shift_dt[ib, 4, in_box_mask_ib]
+            dt_cls_ib_ = shift_dt[ib, 5:, in_box_mask_ib]\
+
+            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[1]
+            num_gt_ib = len(gt_ib)
+
+            iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
+            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-8)
+
+            gt_cls_ib = F.one_hot(gt_ib[:,4].to(torch.int64), self.num_classes)\
+                .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
+
+            with torch.cuda.amp.autocast(enabled=False):
+                dt_cls_ib_ = (dt_cls_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_()
+                                 * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_())
+                cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
+
+            cost = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
+
+
 
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):
@@ -139,7 +173,7 @@ class SimOTA():
         :param gt_ib: [num_gt, 4]
         :param anchor: [num_anchor, 2]  2:x, y
         :param stride: [num_anchor]
-        :return:
+        :return: mask_in_Bbox, mask_in_center&Bbox
         """
         total_num_anchors = len(anchor)
         num_gt = len(gt_ib)
@@ -182,3 +216,40 @@ class SimOTA():
                 is_in_boxes[:, is_in_boxes_anchor] & is_in_centers[:, is_in_boxes_anchor]
         )
         return is_in_boxes_anchor, is_in_boxes_and_center
+
+    @staticmethod
+    def dynamic_k_matching(cost, pair_wise_ious, gt_classes, num_gt, fg_mask):
+        # Dynamic K
+        # ---------------------------------------------------------------
+        matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
+
+        ious_in_boxes_matrix = pair_wise_ious
+        n_candidate_k = min(10, ious_in_boxes_matrix.size(1))
+        topk_ious, _ = torch.topk(ious_in_boxes_matrix, n_candidate_k, dim=1)
+        dynamic_ks = torch.clamp(topk_ious.sum(1).int(), min=1)
+        dynamic_ks = dynamic_ks.tolist()
+        for gt_idx in range(num_gt):
+            _, pos_idx = torch.topk(
+                cost[gt_idx], k=dynamic_ks[gt_idx], largest=False
+            )
+            matching_matrix[gt_idx][pos_idx] = 1
+
+        del topk_ious, dynamic_ks, pos_idx
+
+        anchor_matching_gt = matching_matrix.sum(0)
+        if (anchor_matching_gt > 1).sum() > 0:
+            _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
+            matching_matrix[:, anchor_matching_gt > 1] *= 0
+            matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
+        fg_mask_inboxes = matching_matrix.sum(0) > 0
+        num_fg = fg_mask_inboxes.sum().item()
+
+        fg_mask[fg_mask.clone()] = fg_mask_inboxes
+
+        matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
+        gt_matched_classes = gt_classes[matched_gt_inds]
+
+        pred_ious_this_matching = (matching_matrix * pair_wise_ious).sum(0)[
+            fg_mask_inboxes
+        ]
+        return num_fg, gt_matched_classes, pred_ious_this_matching, matched_gt_inds

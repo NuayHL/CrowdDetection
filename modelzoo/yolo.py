@@ -128,7 +128,7 @@ class YoloX(nn.Module):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
 
-    def get_shift_bbox(self, ori_box:torch.Tensor):
+    def get_shift_bbox(self, ori_box:torch.Tensor): # return xywh Bbox
         if self.config.model.use_anchor:
             shift_box = ori_box.clone().to(torch.float32)
             anchors = torch.tile(self.anchs.t(), (shift_box.shape[0], 1, 1))

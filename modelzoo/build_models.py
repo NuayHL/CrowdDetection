@@ -48,6 +48,7 @@ class BuildModel():
 
         # weight init
         model.apply(weight_init)
+        print("Num of Parameters: %.2fM"%(numofParameters(model)/1e6))
         return model
 
     def get_model_structure(self):
@@ -70,6 +71,12 @@ def weight_init(m):
     if 'BatchNorm' in classname:
         m.weight.data.fill_(1)
         m.bias.data.zero_()
+
+def numofParameters(model: nn.Module ):
+    nump = 0
+    for par in model.parameters():
+        nump += par.numel()
+    return nump
 
 if __name__ == '__main__':
     import sys

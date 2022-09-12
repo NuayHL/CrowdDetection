@@ -151,7 +151,8 @@ class Bottleneck(nn.Module):
         out = self.relu(out)
         return out
 
-## Repvgg
+# RepVGGBlock is a basic rep-style block, including training and deploy status
+# This code is based on https://github.com/DingXiaoH/RepVGG/blob/main/repvgg.py
 from modelzoo.se_block import SEBlock
 class RepBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size,
