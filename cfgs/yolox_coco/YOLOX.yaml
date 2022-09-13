@@ -1,4 +1,4 @@
-exp_name: YOLOX_640
+exp_name: YOLOX_COCO_640
 inference:
   iou_thres: 0.6
   nms_type: nms

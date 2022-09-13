@@ -1,5 +1,6 @@
 import torch
 import torch.nn as nn
+import torch.cuda.amp as amp
 
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors
@@ -57,6 +58,7 @@ class YoloX(nn.Module):
         ori_reg_dt = dt[:, :4, :]      #[B, 4, n_anchors_all]
         shift_dt = self.get_shift_bbox(ori_reg_dt)
 
+        # with amp.autocast(enabled=False):
         assign_result, gt = self.assignment.assign(sample['annss'])
 
         pos_mask = []

@@ -9,17 +9,17 @@ class AnchorAssign():
     def __init__(self, config, device):
         self.cfg = config
         self.assignType = config.model.assignment_type.lower()
-        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
+        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh')
         self.threshold_iou = config.model.assignment_iou_threshold
         self.using_ignored_input = config.data.ignored_input
         self.device = device
         genAchor = Anchor(config)
         self.anchs = torch.from_numpy(genAchor.gen_Bbox(singleBatch=True)).float().to(device)
-        # # change anchor format from xywh to x1y1x2y2
-        # self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
-        # self.anchs[:, 1] = self.anchs[:, 1] - 0.5 * self.anchs[:, 3]
-        # self.anchs[:, 2] = self.anchs[:, 0] + self.anchs[:, 2]
-        # self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
+        # change anchor format from xywh to x1y1x2y2
+        self.anchs[:, 0] = self.anchs[:, 0] - 0.5 * self.anchs[:, 2]
+        self.anchs[:, 1] = self.anchs[:, 1] - 0.5 * self.anchs[:, 3]
+        self.anchs[:, 2] = self.anchs[:, 0] + self.anchs[:, 2]
+        self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
         self.anchs_len = self.anchs.shape[0]
 
     def assign(self, gt, dt=None):
@@ -47,7 +47,7 @@ class AnchorAssign():
         assign_result = assign_result.to(self.device)
         for ib in range(len(gt)):
             imgAnn = gt[ib][:,:4]
-            imgAnn = torch.from_numpy(imgAnn).double()
+            imgAnn = torch.from_numpy(imgAnn).float()
             if torch.cuda.is_available():
                 imgAnn = imgAnn.to(self.device)
 
@@ -57,7 +57,8 @@ class AnchorAssign():
             # negative: 0
             # ignore: -1
             # positive: index+1
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, iou_max_idx.double() + 2.0,iou_max_value)
+            print(iou_max_value.dtype)
+            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(),iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, 0., iou_max_value)
 
@@ -82,7 +83,7 @@ class AnchorAssign():
             real_gt.append(gt_i[~ignored])
             imgAnn = gt_i[:, :4]
             ignoredAnn = imgAnn[ignored]
-            imgAnn = imgAnn[~ignored]
+            imgAnn = imgAnn[~ignored].float()
             if imgAnn.shape[0] == 0:
                 assign_result[ib] = torch.zeros(self.anchs.shape[0]).to(self.device)
                 continue
@@ -93,7 +94,7 @@ class AnchorAssign():
             # negative: 0
             # ignore: -1
             # positive: index+1
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, iou_max_idx + 2.0,iou_max_value)
+            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(),iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value.double())
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, .0, iou_max_value.double())
 
