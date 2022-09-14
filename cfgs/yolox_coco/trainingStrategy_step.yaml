@@ -21,5 +21,5 @@ training:
   train_img_anns_path: COCO/train2017_coco.json
   train_img_path: COCO/train2017
   val_img_anns_path: COCO/val2017_coco.json
-  val_img_path: COCO/val2017_coco.json
+  val_img_path: COCO/val2017
   val_metric: coco
