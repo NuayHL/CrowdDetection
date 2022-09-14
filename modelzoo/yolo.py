@@ -127,7 +127,7 @@ class YoloX(nn.Module):
             raise NotImplementedError
         fin_result = []
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
-            fin_result.append(Result(result, id, ori_shape,self.input_shape))
+            fin_result.append(Result(result, id, ori_shape, self.input_shape))
         return fin_result
 
     def get_shift_bbox(self, ori_box:torch.Tensor): # return xywh Bbox

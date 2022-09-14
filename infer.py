@@ -20,9 +20,9 @@ def main(args):
     infer = Infer(cfg, args, model, 0)
     result, img = infer(args.img)
     result = result[0].to_ori_label()
-    for i in result[:,4]:
-        print('score:', i)
-    show_bbox(img, result, type='x1y1x2y2')
+    for i in result[:,4:]:
+        print('score:', i[0],' category:',int(i[1]))
+    show_bbox(img, result[:,:4], type='x1y1x2y2', score=result[:, 4:] )
 
 
 if __name__ == "__main__":
