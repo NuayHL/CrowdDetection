@@ -140,7 +140,7 @@ class SimOTA():
         self.num_anch = len(self.anch)
 
     def __call__(self, gt, shift_dt):
-        for ib in len(gt):
+        for ib in range(len(gt)):
             dt_ib = shift_dt[ib]
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
@@ -166,7 +166,8 @@ class SimOTA():
 
             cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
 
-            self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, gt_ib[:,4], num_gt_ib, in_box_mask_ib)
+            return (self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, gt_ib[:,4], num_gt_ib, in_box_mask_ib),
+                    in_box_mask_ib)
 
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):

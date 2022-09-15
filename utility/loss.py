@@ -125,12 +125,15 @@ class FocalBCElogits():
             return bceloss
 
 class FocalBCE():
-    def __init__(self, config, device):
+    def __init__(self, config, device, use_nn_bce=False):
         self.use_focal = config.loss.use_focal
         self.alpha = config.loss.focal_alpha
         self.gamma = config.loss.focal_gamma
         self.device = device
-        self.baseloss = BCElossAmp(reduction='none')
+        if use_nn_bce:
+            self.baseloss = nn.BCELoss(reduction='none')
+        else:
+            self.baseloss = BCElossAmp(reduction='none')
     def __call__(self, dt_cls, gt_cls):
         bceloss = self.baseloss(dt_cls, gt_cls)
         if self.use_focal:
