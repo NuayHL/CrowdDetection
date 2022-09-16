@@ -2,9 +2,9 @@ training:
   accumulate: 1
   batch_size: 32
   workers: 8
-  eval_interval: 5
-  final_epoch: 30
-  last_no_mosaic: 5
+  eval_interval: 20
+  final_epoch: 300
+  last_no_mosaic: 0
   warm_up_steps: 1000
   using_autocast: True
   optimizer:
@@ -18,8 +18,8 @@ training:
   schedular:
     type: cosine
     extra: [{"lrf": 0.01}]
-  train_img_anns_path: COCO/train2017_coco.json
-  train_img_path: COCO/train2017
-  val_img_anns_path: COCO/val2017_coco.json
-  val_img_path: COCO/val2017
+  train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
+  train_img_path: CrowdHuman/Images_train
+  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
+  val_img_path: CrowdHuman/Images_val
   val_metric: coco
