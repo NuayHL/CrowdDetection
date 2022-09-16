@@ -63,7 +63,7 @@ class YoloX(nn.Module):
         with torch.no_grad():
             if self.assign_type == 'simota':
                 assign_result, gt, weight = self.assignment.assign(sample['annss'],
-                                                                   torch.cat([shift_dt, obj_dt, cls_dt], dim=1))
+                                                                   torch.cat([shift_dt, obj_dt.unsqueeze(1), cls_dt], dim=1))
             else:
                 assign_result, gt, weight = self.assignment.assign(sample['annss'])
 
