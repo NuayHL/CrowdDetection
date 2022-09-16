@@ -68,7 +68,7 @@ class GeneralLoss_fix():
                 self.iou_loss = IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction)
             elif method in ['l1']:
                 l1_flag = True
-                self.l1_loss = SmoothL1(self.reduction)
+                self.l1_loss = L1(self.reduction)
             else: raise NotImplementedError('Invalid reg loss type %s'%method)
         assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
         assert len(self.loss_weight) == 4,'Please set loss weight for [obj_loss, cls_loss, iou_loss, l1_loss]'
@@ -168,6 +168,18 @@ class SmoothL1():
             return self.baseloss(dt, gt)
         elif self.reduction == 'mean':
             return self.baseloss(dt,gt) * 4 #each have 4 value
+        return self.baseloss(dt, gt)
+
+class L1():
+    def __init__(self, reduction='sum'):
+        self.reduction = reduction
+        self.baseloss = nn.L1Loss(reduction=reduction)
+
+    def __call__(self, dt, gt):
+        if self.reduction == 'sum':
+            return self.baseloss(dt, gt)
+        elif self.reduction == 'mean':
+            return self.baseloss(dt, gt) * 4  # each have 4 value
         return self.baseloss(dt, gt)
 
 class IOUloss():

@@ -59,7 +59,7 @@ class Yolov3(nn.Module):
             dt_for_iou = dt[:, :4].clone()
             dt_for_iou[:, 2:] = anchors[:, 2:] * torch.exp(dt[:, 2:4].clamp(max=50))
             dt_for_iou[:, :2] = anchors[:, :2] + dt[:, :2] * anchors[:, 2:]
-        assign_result, gt = self.assignment.assign(sample['annss'])
+        assign_result, gt, weight = self.assignment.assign(sample['annss'])
 
         fin_loss = 0
         fin_loss_dict = {}
@@ -91,7 +91,12 @@ class Yolov3(nn.Module):
                                       dtype=torch.float32).to(self.device)
             cls_gt_ib[gt_ib[label_pos_generate,4].long(), pos_mask] = 1
             cls_gt_ib = cls_gt_ib[:, pos_neg_mask]
-            obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0, 1)
+            if weight:
+                obj_gt_ib = assign_result_ib.clamp(0, 1)
+                obj_gt_ib[pos_mask] *= weight[ib]
+                obj_gt_ib = obj_gt_ib[pos_neg_mask]
+            else:
+                obj_gt_ib = assign_result_ib[pos_neg_mask].clamp(0, 1)
             cls_all_gt_ib = torch.cat([obj_gt_ib.unsqueeze(0), cls_gt_ib], 0)
             dt_list.append(cls_all_dt_ib)
             gt_list.append(cls_all_gt_ib)

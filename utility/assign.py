@@ -5,10 +5,18 @@ import torch.nn.functional as F
 from utility.iou import IOU
 from utility.anchors import Anchor, generateAnchors
 
+def get_assign_method(config, device):
+    type = config.model.assignment_type.lower()
+    if type == 'simota':
+        return SimOTA(config, device)
+    elif type == 'default':
+        return AnchorAssign(config, device)
+    else:
+        raise NotImplementedError
+
 class AnchorAssign():
     def __init__(self, config, device):
         self.cfg = config
-        self.assignType = config.model.assignment_type.lower()
         self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh')
         self.threshold_iou = config.model.assignment_iou_threshold
         self.using_ignored_input = config.data.ignored_input
@@ -22,7 +30,7 @@ class AnchorAssign():
         self.anchs[:, 3] = self.anchs[:, 1] + self.anchs[:, 3]
         self.anchs_len = self.anchs.shape[0]
 
-    def assign(self, gt, dt=None):
+    def assign(self, gt):
         '''
         using batch_sized data input
         :param gt:aka:"anns":List lenth B, each with np.float32 ann}
@@ -30,16 +38,10 @@ class AnchorAssign():
         :return:the same sture of self.anchs, but filled
                 with value indicates the assignment of the anchor
         '''
-        if self.assignType == "default":
-            if self.using_ignored_input:
-                return self._retinaAssign_using_ignored(gt)
-            else:
-                return self._retinaAssign(gt)
-        elif self.assignType == 'simota':
-            assert dt != None, 'You are using SimOTA, please input dt'
-            return self._simOTA(gt, dt)
+        if self.using_ignored_input:
+            return self._retinaAssign_using_ignored(gt)
         else:
-            raise NotImplementedError("Unknown assignType: %s"%self.assignType)
+            return self._retinaAssign(gt)
 
     def _retinaAssign(self,gt):
         output_size = (len(gt),self.anchs.shape[0])
@@ -115,9 +117,6 @@ class AnchorAssign():
             assign_result[ib] = iou_max_value-1
 
         return assign_result, real_gt, None
-
-    def _simOTA(self, gt, dt):
-        pass
 
 # This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
 class SimOTA():

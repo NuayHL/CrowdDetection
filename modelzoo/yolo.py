@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.cuda.amp as amp
 
-from utility.assign import AnchorAssign
+from utility.assign import get_assign_method
 from utility.anchors import generateAnchors
 from utility.loss import GeneralLoss_fix, updata_loss_dict
 from utility.nms import non_max_suppression
@@ -37,7 +37,8 @@ class YoloX(nn.Module):
     def set(self, args, device):
         self.device = device
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
-        self.assignment = AnchorAssign(self.config, device)
+        self.assignment = get_assign_method(self.config, device)
+        self.assign_type = self.config.model.assignment_type.lower()
         if self.config.model.use_anchor:
             self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
             self.num_of_proposal = self.anchs.shape[0]
@@ -59,7 +60,12 @@ class YoloX(nn.Module):
         shift_dt = self.get_shift_bbox(ori_reg_dt)
 
         # with amp.autocast(enabled=False):
-        assign_result, gt = self.assignment.assign(sample['annss'])
+        with torch.no_grad():
+            if self.assign_type == 'simota':
+                assign_result, gt, weight = self.assignment.assign(sample['annss'],
+                                                                   torch.cat([shift_dt, obj_dt, cls_dt], dim=1))
+            else:
+                assign_result, gt, weight = self.assignment.assign(sample['annss'])
 
         pos_mask = []
 
@@ -90,6 +96,8 @@ class YoloX(nn.Module):
             cls_gt.append(cls_gt_ib)
 
             obj_gt_ib = assign_result_ib.clamp(0, 1)
+            if weight:
+                obj_gt_ib[pos_mask_ib] *= weight[ib]
             obj_gt.append(obj_gt_ib)
 
         pos_mask = torch.cat(pos_mask, dim=0)
