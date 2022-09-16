@@ -132,12 +132,20 @@ class SimOTA():
 
     def assign(self, gt, shift_dt):
         output_size = (len(gt), self.num_anch)
-        assign_result = torch.zeros(output_size)
+        assign_result = torch.zeros(output_size).to(self.device)
         cls_weights = []
+        fin_gt = []
 
         for ib in range(len(gt)):
             dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
+
+            if len(gt_ib) == 0:
+                assign_result[ib] = torch.zeros(self.num_anch)
+                cls_weights.append(0)
+                fin_gt.append(gt_ib)
+                continue
+
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
                                                                                self.anchs,
                                                                                self.stride)
@@ -149,9 +157,11 @@ class SimOTA():
             num_gt_ib = len(gt_ib)
 
             iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
-            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-8)
+            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
 
-            gt_cls_ib = F.one_hot(gt_ib[:,4].to(torch.int64), self.num_classes)\
+            gt_cls_ib = gt_ib[:,4].to(torch.int64)
+
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes)\
                 .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
 
             with torch.cuda.amp.autocast(enabled=False):
@@ -168,8 +178,9 @@ class SimOTA():
 
             assign_result[ib] = assignment
             cls_weights.append(cls_ib_weight)
+            fin_gt.append(gt_ib)
 
-        return assign_result, gt, cls_weights
+        return assign_result, fin_gt, cls_weights
 
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):
@@ -251,8 +262,6 @@ class SimOTA():
 
         matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
 
-        # fix: gt_class no need here
-        # fix: num_posi_anch no need here
         cls_weight = (matching_matrix * pair_wise_ious).sum(0)[
             fg_mask_inboxes
         ]

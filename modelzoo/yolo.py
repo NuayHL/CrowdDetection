@@ -44,7 +44,7 @@ class YoloX(nn.Module):
             self.num_of_proposal = self.anchs.shape[0]
         else:
             raise NotImplementedError('Current Yolo do not support anchor free')
-        assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
+        # assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
         self.use_l1 = True if 'l1' in self.config.loss.reg_type else False
 
