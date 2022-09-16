@@ -15,9 +15,11 @@ class IOU(nn.Module):
         self.dt_type = dt_type
         self.gt_type = gt_type
 
+    @torch.no_grad()
     def forward(self,dt,gt):
         '''
         WARNING: the input must be bboxs, i.e. len(dt.shape)==2
+        WARNING: the input must be torch.Tensor
         :param dt: detect bboxes or anchor bboxes
         :param gt: gt bboxes
         :return: ious
@@ -84,13 +86,13 @@ class IOU(nn.Module):
         pass
 
     def _x1y1wh_to_x1y1x2y2(self, input):
-        input_ = deepcopy(input)
+        input_ = input.clone()
         input_[:, 2] = input[:, 0] + input[:, 2]
         input_[:, 3] = input[:, 1] + input[:, 3]
         return input_
 
     def _xywh_to_x1y1x2y2(self,input):
-        input_ = deepcopy(input)
+        input_ = input.clone()
         input_[:, 0] = input[:,0] - 0.5 * input[:,2]
         input_[:, 1] = input[:,1] - 0.5 * input[:,3]
         input_[:, 2] = input_[:,0] + input[:,2]

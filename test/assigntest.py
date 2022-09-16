@@ -18,8 +18,8 @@ device = 1
 cfg = get_default_cfg()
 cfg.merge_from_files('cfgs/yolov3')
 
-dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'train')
-sample = dataset[100]
+dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
+sample = dataset[233]
 img = sample['img']
 gt = sample['anns']
 
@@ -28,15 +28,16 @@ samples = CocoDataset.OD_default_collater([sample])
 builder = BuildModel(cfg)
 model = builder.build()
 
-assigner = SimOTA(cfg, device)
+assigner_ota = SimOTA(cfg, device)
+assigner_norm = AnchorAssign(cfg, device)
 anchorgen = Anchor(cfg)
 
 model.set(None, device)
 model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
 
-para = torch.load('YOLOv3_640.pth')
-model.load_state_dict(para['model'])
+# para = torch.load('YOLOv3_640.pth')
+# model.load_state_dict(para['model'])
 dt = model.core(samples['imgs'])
 anchs = anchorgen.gen_Bbox(singleBatch=True)
 anchor_gpu = torch.from_numpy(anchs).to(device)
@@ -50,10 +51,13 @@ def get_shift_bbox(ori_box: torch.Tensor):  # return xywh Bbox
 
 dt[:, :4, :] = get_shift_bbox(dt[:, :4, :])
 
-(num_pos, matched_classes, cls_weight, matched_gt), mask = assigner(samples['annss'], dt)
+(num_pos, matched_classes, cls_weight, matched_gt), mask_ota = assigner_ota(samples['annss'], dt)
+mask_norm, _ = assigner_norm.assign(samples['annss'])
 
-mask = mask.cpu()
+mask_ota = mask_ota.cpu()
+mask_norm = mask_norm[0]
 
-assign_hot_map(anchs, mask, (640,640), img, gt)
+assign_hot_map(anchs, mask_ota, (640,640), img, gt)
+assign_hot_map(anchs, mask_norm, (640,640), img, gt)
 
 

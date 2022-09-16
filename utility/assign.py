@@ -134,23 +134,23 @@ class SimOTA():
         self.device = device
         anchorGen = Anchor(config)
         self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
-        self.anch = torch.from_numpy(anchorGen.gen_points(singleBatch=True)).to(device)
+        self.anch = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True)).to(device)
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anch)
 
     def __call__(self, gt, shift_dt):
         for ib in range(len(gt)):
-            dt_ib = shift_dt[ib]
+            dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
                                                                        self.anch,
                                                                        self.stride)
-            shift_Bbox_pre_ib_ = shift_dt[ib, :4, in_box_mask_ib]
-            dt_obj_ib_ = shift_dt[ib, 4, in_box_mask_ib]
-            dt_cls_ib_ = shift_dt[ib, 5:, in_box_mask_ib]\
+            shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
+            dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
+            dt_cls_ib_ = dt_ib[in_box_mask_ib, 5:]
 
-            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[1]
+            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[0]
             num_gt_ib = len(gt_ib)
 
             iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
