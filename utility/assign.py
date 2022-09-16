@@ -66,7 +66,7 @@ class AnchorAssign():
             iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
             assign_result[ib] = iou_max_value-1
 
-        return assign_result, gt
+        return assign_result, gt, None
 
     def _retinaAssign_using_ignored(self,gt):
         ''':return: assign result, real gt(exclude ignored ones), all already to tensor'''
@@ -114,18 +114,10 @@ class AnchorAssign():
 
             assign_result[ib] = iou_max_value-1
 
-        return assign_result, real_gt
+        return assign_result, real_gt, None
 
     def _simOTA(self, gt, dt):
         pass
-
-
-class AnchFreeAssign():
-    def __init__(self):
-        pass
-    def assign(self, gt):
-        pass
-
 
 # This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
 class SimOTA():
@@ -134,18 +126,22 @@ class SimOTA():
         self.device = device
         anchorGen = Anchor(config)
         self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
-        self.anch = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True)).to(device)
+        self.anchs = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True)).to(device)
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
         self.num_classes = config.data.numofclasses
-        self.num_anch = len(self.anch)
+        self.num_anch = len(self.anchs)
 
-    def __call__(self, gt, shift_dt):
+    def assign(self, gt, shift_dt):
+        output_size = (len(gt), self.num_anch)
+        assign_result = torch.zeros(output_size)
+        cls_weights = []
+
         for ib in range(len(gt)):
             dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
-                                                                       self.anch,
-                                                                       self.stride)
+                                                                               self.anchs,
+                                                                               self.stride)
             shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
             dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
             dt_cls_ib_ = dt_ib[in_box_mask_ib, 5:]
@@ -166,8 +162,15 @@ class SimOTA():
 
             cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
 
-            return (self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, gt_ib[:,4], num_gt_ib, in_box_mask_ib),
-                    in_box_mask_ib)
+            matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
+
+            assignment = in_box_mask_ib.float()
+            assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
+
+            assign_result[ib] = assignment
+            cls_weights.append(cls_ib_weight)
+
+        return assign_result, gt, cls_weights
 
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):
@@ -220,7 +223,7 @@ class SimOTA():
         return is_in_boxes_anchor, is_in_boxes_and_center
 
     @staticmethod
-    def dynamic_k_matching(cost, pair_wise_ious, gt_classes, num_gt, fg_mask):
+    def dynamic_k_matching(cost, pair_wise_ious, num_gt, fg_mask):
         # Dynamic K
         # ---------------------------------------------------------------
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
@@ -243,17 +246,15 @@ class SimOTA():
             _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
             matching_matrix[:, anchor_matching_gt > 1] *= 0
             matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
-        fg_mask_inboxes = matching_matrix.sum(0) > 0
-        num_posi_anch = fg_mask_inboxes.sum().item()
+        fg_mask_inboxes = matching_matrix.sum(0) > 0 # the final assigned ones among the in anchors
 
         fg_mask[fg_mask.clone()] = fg_mask_inboxes
 
         matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
-        gt_matched_classes = gt_classes[matched_gt_inds]
 
         # fix: gt_class no need here
         # fix: num_posi_anch no need here
         cls_weight = (matching_matrix * pair_wise_ious).sum(0)[
             fg_mask_inboxes
         ]
-        return num_posi_anch, gt_matched_classes, cls_weight, matched_gt_inds
+        return matched_gt_inds, cls_weight

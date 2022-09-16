@@ -51,13 +51,14 @@ def get_shift_bbox(ori_box: torch.Tensor):  # return xywh Bbox
 
 dt[:, :4, :] = get_shift_bbox(dt[:, :4, :])
 
-(num_pos, matched_classes, cls_weight, matched_gt), mask_ota = assigner_ota(samples['annss'], dt)
-mask_norm, _ = assigner_norm.assign(samples['annss'])
+mask_ota, cls_weight = assigner_ota.assign(samples['annss'], dt)
 
-mask_ota = mask_ota.cpu()
-mask_norm = mask_norm[0]
-
+mask_ota = mask_ota[0].cpu()
 assign_hot_map(anchs, mask_ota, (640,640), img, gt)
-assign_hot_map(anchs, mask_norm, (640,640), img, gt)
+
+# mask_norm, _ = assigner_norm.assign(samples['annss'])
+# mask_norm = mask_norm[0]
+# assign_hot_map(anchs, mask_norm, (640,640), img, gt)
+
 
 
