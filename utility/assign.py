@@ -140,7 +140,7 @@ class SimOTA():
             dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
 
-            if len(gt_ib) == 0:
+            if len(gt_ib) == 0: # deal with blank image
                 assign_result[ib] = torch.zeros(self.num_anch)
                 cls_weights.append(0)
                 fin_gt.append(gt_ib)
@@ -173,6 +173,9 @@ class SimOTA():
 
             matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
 
+            # negative: 0
+            # ignore: -1
+            # positive: index+1
             assignment = in_box_mask_ib.float()
             assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
 
@@ -188,7 +191,7 @@ class SimOTA():
         :param gt_ib: [num_gt, 4]
         :param anchor: [num_anchor, 2]  2:x, y
         :param stride: [num_anchor]
-        :return: mask_in_Bbox, mask_in_center&Bbox
+        :return: mask_for_anchors, mask_in_[num_gt X masked_anchors]
         """
         total_num_anchors = len(anchor)
         num_gt = len(gt_ib)
@@ -234,8 +237,6 @@ class SimOTA():
 
     @staticmethod
     def dynamic_k_matching(cost, pair_wise_ious, num_gt, fg_mask):
-        # Dynamic K
-        # ---------------------------------------------------------------
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
 
         ious_in_boxes_matrix = pair_wise_ious
