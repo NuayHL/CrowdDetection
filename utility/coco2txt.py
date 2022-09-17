@@ -47,10 +47,12 @@ def coco_dt_to_txt(gt_file, dt_file, output_folder_name):
             x1, y1 = dt_bbox['bbox'][:2]
             x2 = dt_bbox['bbox'][0] + dt_bbox['bbox'][2]
             y2 = dt_bbox['bbox'][1] + dt_bbox['bbox'][3]
-            print(class_name,score,x1,y1,x2,y2)
+            print(class_name,score,x1,y1,x2,y2,file=f)
 
         progressbar((i + 1) / total_bboxes, barlenth=40)
 
 
 if __name__ == '__main__':
-    coco_gt_to_txt('CrowdHuman/annotation_val_coco_style.json','coco_val')
+    coco_dt_to_txt('CrowdHuman/annotation_val_coco_style.json',
+                   'running_log/YOLOX_640_last20noMosaic/last_epoch_evalresult.json',
+                   'coco_val_dt')
