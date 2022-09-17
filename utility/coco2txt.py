@@ -2,6 +2,7 @@ import os
 import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path, '../odcore'))
+import json
 from pycocotools.coco import COCO
 
 def progressbar(percentage, endstr='', barlenth=20):
@@ -29,6 +30,27 @@ def coco_gt_to_txt(jsonfile, output_folder_name):
                 y2 = ann['bbox'][1] + ann['bbox'][3]
                 print(class_name,x1, y1, x2, y2, file=f)
         progressbar((i+1)/total_imgs, barlenth=40)
+
+def coco_dt_to_txt(gt_file, dt_file, output_folder_name):
+    gt = COCO(gt_file)
+    cates = gt.cats
+    with open(dt_file,'r') as f:
+        dt = json.load(f)
+    assert not os.path.exists(output_folder_name), 'output folder already exists!'
+    os.makedirs(output_folder_name)
+    file_path = output_folder_name
+    total_bboxes = float(len(dt))
+    for i, dt_bbox in enumerate(dt):
+        with open(os.path.join(file_path, dt_bbox['image_id']+'.txt'),'a') as f:
+            class_name = cates[dt_bbox['category_id']]['name']
+            score = dt_bbox['score']
+            x1, y1 = dt_bbox['bbox'][:2]
+            x2 = dt_bbox['bbox'][0] + dt_bbox['bbox'][2]
+            y2 = dt_bbox['bbox'][1] + dt_bbox['bbox'][3]
+            print(class_name,score,x1,y1,x2,y2)
+
+        progressbar((i + 1) / total_bboxes, barlenth=40)
+
 
 if __name__ == '__main__':
     coco_gt_to_txt('CrowdHuman/annotation_val_coco_style.json','coco_val')
