@@ -21,12 +21,14 @@ def main(args):
     infer = Infer(cfg, args, model, 0)
     result, img = infer(args.img, "_test_hot_map")
     upsampled = []
+    fig, ax = plt.subplots(3,4)
     for id, level in enumerate(result):
-        for fm in level:
+        for il, fm in enumerate(level):
             fm = fm.numpy()
-            upsampled.append(cv2.in)
-            cv2.imshow('test',fm)
-            cv2.waitKey()
+            ax[id][il].imshow(fm)
+            ax[id][il].axis('off')
+    plt.show()
+
 
 
 if __name__ == "__main__":
