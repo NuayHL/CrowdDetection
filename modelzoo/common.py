@@ -154,10 +154,10 @@ class Bottleneck(nn.Module):
 # RepVGGBlock is a basic rep-style block, including training and deploy status
 # This code is based on https://github.com/DingXiaoH/RepVGG/blob/main/repvgg.py
 from modelzoo.se_block import SEBlock
-class RepBlock(nn.Module):
+class RepVGGBlock(nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size,
                  stride=1, padding=0, dilation=1, groups=1, padding_mode='zeros', deploy=False, use_se=False):
-        super(RepBlock, self).__init__()
+        super(RepVGGBlock, self).__init__()
         self.deploy = deploy
         self.groups = groups
         self.in_channels = in_channels

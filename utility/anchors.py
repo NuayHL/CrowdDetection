@@ -134,6 +134,32 @@ def anchors_parse(config, anchors, fplevel=None,ratios=None,scales=None):
         parsed_anch.append(ilevel_anch)
     return parsed_anch
 
+def result_parse(config, dt, fplevel=None,ratios=None,scales=None, restore_size=False):
+    if fplevel is None:
+        fplevel = config.model.fpnlevels
+    if scales is None:
+        scales = config.model.anchor_scales
+    if ratios is None:
+        ratios = config.model.anchor_ratios
+    anchors_per_grid = len(scales) * len(ratios)
+    width = config.data.input_width
+    height = config.data.input_height
+    begin_level = 0
+    parsed_anch = []
+    for i in fplevel:
+        ilevel_anch = []
+        i_w = width/(2**i)
+        i_h = height/(2**i)
+        for rs in range(anchors_per_grid):
+            temp = dt[int(begin_level+rs*i_h*i_w):int(begin_level+(rs+1)*i_h*i_w),:]
+            if restore_size:
+                temp = temp.reshape(int(i_h), int(i_w), -1)
+            ilevel_anch.append(temp)
+        begin_level += anchors_per_grid*i_h*i_w
+        parsed_anch.append(ilevel_anch)
+    return parsed_anch
+
+
 
 
 
