@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from utility.assign import AnchorAssign
-from utility.anchors import generateAnchors
+from utility.anchors import generateAnchors, result_parse
 from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
@@ -131,6 +131,14 @@ class Yolov3(nn.Module):
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
+
+    def _test_hot_map(self, sample):
+        dt = self.core(sample['imgs'])
+        hot_map = self.sigmoid(dt[:, 4, :])
+        assert len(hot_map.shape) == 2, "please using single batch input"
+        hot_map = hot_map.t().detach().cpu()
+        hot_map_list = result_parse(self.config, hot_map, restore_size=True)
+        return hot_map_list
 
     @staticmethod
     def coco_parse_result(results):
