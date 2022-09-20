@@ -125,7 +125,11 @@ class SimOTA():
         self.device = device
         anchorGen = Anchor(config)
         self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
-        self.anchs = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True)).to(device)
+        self.using_anchor = config.model.use_anchor
+        if self.using_anchor:
+            self.anchs = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True)).to(device)
+        else:
+            self.anchs = torch.from_numpy(anchorGen.gen_points(singleBatch=True)).to(device)
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
