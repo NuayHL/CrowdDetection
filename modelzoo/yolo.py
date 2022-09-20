@@ -75,7 +75,6 @@ class YoloX(nn.Module):
         if self.use_l1:
             l1_gt = []
 
-        # first construct simOTA!!
         for ib in range(len(gt)):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask_ib = torch.gt(assign_result_ib, 0.5)
