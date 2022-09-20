@@ -78,7 +78,7 @@ def head_bias_init(prior_prob):
     def init_func(m):
         fill_in_ = -math.log((1 - prior_prob) / prior_prob)
         if isinstance(m, nn.Conv2d):
-            if m.bias:
+            if m.bias != None:
                 nn.init.constant_(m.bias, fill_in_)
     return init_func
 

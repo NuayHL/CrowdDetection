@@ -11,10 +11,10 @@ loss:
   use_focal: False
   weight: [1.0, 1.0, 5.0 ,1.0]
 model:
-  anchor_ratios: ''
-  anchor_scales: ''
-  assignment_iou_threshold: ''
-  assignment_iou_type: ''
+  anchor_ratios: [1]
+  anchor_scales: [1]
+  assignment_iou_threshold: 0.5
+  assignment_iou_type: iou
   assignment_type: simOTA
   fpnlevels: [3, 4, 5]
   name: yolox
