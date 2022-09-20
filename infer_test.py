@@ -2,9 +2,9 @@ import os
 import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path,'odcore'))
-import cv2
 import matplotlib.pyplot as plt
 from odcore.engine.infer import Infer
+from odcore.utils.visualization import stack_img
 from config import get_default_cfg
 from odcore.args import get_infer_args_parser
 from modelzoo.build_models import BuildModel
@@ -20,13 +20,18 @@ def main(args):
     model.set(args, 0)
     infer = Infer(cfg, args, model, 0)
     result, img = infer(args.img, "_test_hot_map")
-    upsampled = []
+    sum_result = []
     fig, ax = plt.subplots(3,4)
     for id, level in enumerate(result):
         for il, fm in enumerate(level):
             fm = fm.numpy()
+            sum_result.append(fm)
             ax[id][il].imshow(fm)
             ax[id][il].axis('off')
+    plt.show()
+    sum_result = stack_img(sum_result,(3,4))
+    fig, ax = plt.subplots()
+    ax.imshow(sum_result)
     plt.show()
 
 
