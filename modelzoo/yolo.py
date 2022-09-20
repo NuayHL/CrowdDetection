@@ -40,10 +40,13 @@ class YoloX(nn.Module):
         self.assignment = get_assign_method(self.config, device)
         self.assign_type = self.config.model.assignment_type.lower()
         self.anch_gen = Anchor(self.config)
-        if self.config.model.use_anchor:
+        self.use_anchor = self.config.model.use_anchor
+        if self.use_anchor:
             self.anchs = torch.from_numpy(self.anch_gen.gen_Bbox(singleBatch=True)).float().to(device)
         else:
             self.anchs = torch.from_numpy(self.anch_gen.gen_points(singleBatch=True)).float().to(device)
+            single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True)).float().to(device).unsqueeze(1)
+            self.stride = torch.cat([single_stride, single_stride], dim=1)
         self.num_of_proposal = self.anchs.shape[0]
         # assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
@@ -117,8 +120,6 @@ class YoloX(nn.Module):
 
     def inferencing(self, sample):
         dt = self.core(sample['imgs'])
-        anchors = self.anchs.t()
-        anchors = torch.tile(anchors, (dt.shape[0], 1, 1))
 
         # restore the predicting bboxes via pre-defined anchors
         dt[:, :4, :] = self.get_shift_bbox(dt[:, :4, :])
@@ -137,22 +138,26 @@ class YoloX(nn.Module):
         return fin_result
 
     def get_shift_bbox(self, ori_box:torch.Tensor): # return xywh Bbox
-        if self.config.model.use_anchor:
-            shift_box = ori_box.clone().to(torch.float32)
+        shift_box = ori_box.clone().to(torch.float32)
+        if self.use_anchor:
             anchors = torch.tile(self.anchs.t(), (shift_box.shape[0], 1, 1))
             shift_box[:, 2:] = anchors[:, 2:] * torch.exp(ori_box[:, 2:4].clamp(max=25))
             shift_box[:, :2] = anchors[:, :2] + ori_box[:, :2] * anchors[:, 2:]
         else:
-            raise NotImplementedError
+            anchor_points = torch.tile(self.anchs.t(), (shift_box.shape[0], 1, 1))
+            stride = torch.tile(self.stride.t(), (shift_box.shape[0], 1, 1))
+            shift_box[:, 2:] = torch.exp(ori_box[:, 2:].clamp(max=25)) * stride
+            shift_box[:, :2] = anchor_points + ori_box[:, :2] * stride
         return shift_box
 
     def get_l1_target(self, gt_pos_mask_generate, pos_mask):
-        if self.config.model.use_anchor:
-            l1_gt_ib = gt_pos_mask_generate
+        l1_gt_ib = gt_pos_mask_generate
+        if self.use_anchor:
             l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
             l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
         else:
-            raise NotImplementedError
+            l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask])
+            l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask]) / self.stride[pos_mask]
         return l1_gt_ib.t()
 
     def _test_hot_map(self, sample):
