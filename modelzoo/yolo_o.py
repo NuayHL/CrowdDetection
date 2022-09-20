@@ -39,11 +39,10 @@ class YoloX(nn.Module):
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = get_assign_method(self.config, device)
         self.assign_type = self.config.model.assignment_type.lower()
-        self.anch_gen = Anchor(self.config)
         if self.config.model.use_anchor:
-            self.anchs = torch.from_numpy(self.anch_gen.gen_Bbox(singleBatch=True)).float().to(device)
+            self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
         else:
-            self.anchs = torch.from_numpy(self.anch_gen.gen_points(singleBatch=True)).float().to(device)
+            raise NotImplementedError('Current Yolo do not support anchor free')
         self.num_of_proposal = self.anchs.shape[0]
         # assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
 
@@ -121,7 +120,9 @@ class YoloX(nn.Module):
         anchors = torch.tile(anchors, (dt.shape[0], 1, 1))
 
         # restore the predicting bboxes via pre-defined anchors
-        dt[:, :4, :] = self.get_shift_bbox(dt[:, :4, :])
+        if self.config.model.use_anchor:
+            dt[:, 2:4, :] = anchors[:, 2:, :] * torch.exp(dt[:, 2:4, :])
+            dt[:, :2, :] = anchors[:, :2, :] + dt[:, :2, :] * anchors[:, 2:, :]
 
         dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
 
