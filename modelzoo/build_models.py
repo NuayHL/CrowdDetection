@@ -1,3 +1,4 @@
+import math
 from collections import defaultdict
 import torch.nn as nn
 import modelzoo.head as head
@@ -48,6 +49,8 @@ class BuildModel():
 
         # weight init
         model.apply(weight_init)
+        model.head.apply(head_bias_init(0.01))
+
         print("Num of Parameters: %.2fM"%(numofParameters(model)/1e6))
         return model
 
@@ -62,15 +65,22 @@ class BuildModel():
             raise NotImplementedError('No model named %s' % (self.model_name))
 
 def weight_init(m):
-    classname = m.__class__.__name__
-    if 'Conv' in classname:
-        try:
-            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-        except:
-            pass
-    if 'BatchNorm' in classname:
+    if isinstance(m, nn.Conv2d):
+        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+
+    if isinstance(m, nn.BatchNorm2d):
         m.weight.data.fill_(1)
         m.bias.data.zero_()
+        m.eps = 1e-3
+        m.momentum = 0.03
+
+def head_bias_init(prior_prob):
+    def init_func(m):
+        fill_in_ = -math.log((1 - prior_prob) / prior_prob)
+        if isinstance(m, nn.Conv2d):
+            if m.bias:
+                nn.init.constant_(m.bias, fill_in_)
+    return init_func
 
 def numofParameters(model: nn.Module ):
     nump = 0
