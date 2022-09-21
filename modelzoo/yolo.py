@@ -44,6 +44,7 @@ class YoloX(nn.Module):
         if self.use_anchor:
             self.anchs = torch.from_numpy(self.anch_gen.gen_Bbox(singleBatch=True)).float().to(device)
         else:
+            assert self.assign_type is not "default", "Assign type %s do not support anchor free style"%self.assign_type
             self.anchs = torch.from_numpy(self.anch_gen.gen_points(singleBatch=True)).float().to(device)
             single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True) * 2).float().to(device).unsqueeze(1)
             self.stride = torch.cat([single_stride, single_stride], dim=1)
