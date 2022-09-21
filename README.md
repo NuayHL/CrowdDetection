@@ -1,10 +1,8 @@
-## Crowd ObjectDetection based on YOLO
+## A One-stage Crowd ObjectDetection
 
 ![val_1_dt](imgs/val_1_dt.png)
 
-This project aims to firstly reproduce the YOLO series via pytorch
-
-Begin reproducing the YOLOX
+This project aims to reproduce the YOLO series via pytorch
 
 #### Environment Setting
 - Base Enviroment
