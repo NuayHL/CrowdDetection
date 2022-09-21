@@ -1,4 +1,4 @@
-exp_name: YOLOX_640_OTA
+exp_name: YOLOX_640_OTA_free
 inference:
   iou_thres: 0.6
   nms_type: nms
