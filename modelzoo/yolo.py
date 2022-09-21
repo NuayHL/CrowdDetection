@@ -45,7 +45,7 @@ class YoloX(nn.Module):
             self.anchs = torch.from_numpy(self.anch_gen.gen_Bbox(singleBatch=True)).float().to(device)
         else:
             self.anchs = torch.from_numpy(self.anch_gen.gen_points(singleBatch=True)).float().to(device)
-            single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True)).float().to(device).unsqueeze(1)
+            single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True) * 2).float().to(device).unsqueeze(1)
             self.stride = torch.cat([single_stride, single_stride], dim=1)
         self.num_of_proposal = self.anchs.shape[0]
         # assert self.config.data.ignored_input is True, "Please set the config.data.ignored_input as True"
@@ -156,7 +156,7 @@ class YoloX(nn.Module):
             l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask, 2:])
             l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask, :2]) / self.anchs[pos_mask, 2:]
         else:
-            l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.anchs[pos_mask])
+            l1_gt_ib[:, 2:] = torch.log(l1_gt_ib[:, 2:] / self.stride[pos_mask] + 1e-8)
             l1_gt_ib[:, :2] = (l1_gt_ib[:, :2] - self.anchs[pos_mask]) / self.stride[pos_mask]
         return l1_gt_ib.t()
 

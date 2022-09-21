@@ -30,7 +30,11 @@ def main(args):
             ax[id][il].imshow(fm)
             ax[id][il].axis('off')
     plt.show()
-    sum_result = stack_img(sum_result,(3,4))
+
+    fpnlevels = len(cfg.model.fpnlevels)
+    anchor_per_grid = len(cfg.model.anchor_ratios) * len(cfg.model.anchor_scales) if cfg.model.use_anchor else 1
+
+    sum_result = stack_img(sum_result,(fpnlevels,anchor_per_grid))
     bar = generate_hot_bar(1.0, 0.0, sum_result.shape[0])
     sum_result = np.concatenate([sum_result, bar], axis=1)
     fig, ax = plt.subplots()

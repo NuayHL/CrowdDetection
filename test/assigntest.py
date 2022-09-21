@@ -6,12 +6,13 @@ import torch
 import torch.nn as nn
 from torch import tensor as t
 import numpy as np
-from odcore.utils.visualization import assign_hot_map
+import matplotlib.pyplot as plt
+from odcore.utils.visualization import assign_hot_map, stack_img, generate_hot_bar
 from odcore.data.dataset import CocoDataset
 from modelzoo.build_models import BuildModel
 from config import get_default_cfg
 from utility.assign import AnchorAssign, SimOTA
-from utility.anchors import Anchor
+from utility.anchors import Anchor, result_parse
 
 device = 1
 
@@ -19,7 +20,7 @@ cfg = get_default_cfg()
 cfg.merge_from_files('cfgs/yolox_ota_free')
 
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
-sample = dataset[233]
+sample = dataset[200]
 img = sample['img']
 gt = sample['anns']
 
@@ -36,7 +37,7 @@ model.set(None, device)
 model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
 
-# para = torch.load('YOLOX_640_NM.pth')
+# para = torch.load('running_log/YOLOX_640_OTA_1/best_epoch.pth')
 # model.load_state_dict(para['model'])
 dt = model.core(samples['imgs'])
 if cfg.model.use_anchor:
@@ -72,8 +73,35 @@ else:
     anchs = torch.cat([anchs, stride], dim = 1)
     anchs = anchs.cpu().numpy()
 
-test = mask_ota.clamp(0,1).sum()
-print(test)
+clampled_mask = mask_ota.clamp(0,1)
+print(clampled_mask.sum())
+
+clampled_mask = clampled_mask.unsqueeze(dim=1)
+
+level_mask = result_parse(cfg, clampled_mask, restore_size=True)
+
+sum_result = []
+
+fig, ax = plt.subplots(3,4)
+for id, level in enumerate(level_mask):
+    for il, fm in enumerate(level):
+        fm = fm.numpy()
+        sum_result.append(fm)
+        ax[id][il].imshow(fm)
+        ax[id][il].axis('off')
+plt.show()
+
+fpnlevels = len(cfg.model.fpnlevels)
+anchor_per_grid = len(cfg.model.anchor_ratios) * len(cfg.model.anchor_scales) if cfg.model.use_anchor else 1
+
+sum_result = stack_img(sum_result, (fpnlevels, anchor_per_grid))
+
+bar = generate_hot_bar(1.0, 0.0, sum_result.shape[0])
+sum_result = np.concatenate([sum_result, bar], axis=1)
+fig, ax = plt.subplots()
+ax.imshow(sum_result)
+ax.axis('off')
+plt.show()
 
 assign_hot_map(anchs, mask_ota, (640,640), img, gt)
 
