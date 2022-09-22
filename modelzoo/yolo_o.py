@@ -8,6 +8,8 @@ from utility.loss import GeneralLoss_fix, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
 
+from utility.nms_copy import cpu_nms
+
 # model.set(args, device)
 # model.coco_parse_result(results) results: List of prediction
 

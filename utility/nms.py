@@ -7,7 +7,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
     """Runs Non-Maximum Suppression (NMS) on inference results.
     This code is borrowed from: https://github.com/ultralytics/yolov5/blob/47233e1698b89fc437a4fb9463c815e9171be955/utils/general.py#L775
     Args:
-        prediction: (tensor), with shape [N, 5 + num_classes], N is the number of bboxes.
+        prediction: (tensor), with shape [N, 5 + num_classes], N is the number of bboxes. 5: xywh + objectness
         conf_thres: (float) confidence threshold.
         iou_thres: (float) iou threshold.
         classes: (None or list[int]), if a list is provided, nms only keep the classes you provide.
@@ -70,6 +70,7 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
         class_offset = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
         boxes, scores = x[:, :4] + class_offset, x[:, 4]  # boxes (offset by class), scores
         keep_box_idx = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+        #keep_box_idx = nms_tensor(torch.cat([boxes, scores], dim=1), iou_thres)
         if keep_box_idx.shape[0] > max_det:  # limit detections
             keep_box_idx = keep_box_idx[:max_det]
 
@@ -80,6 +81,69 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
 
     return output
 
+def nms_tensor(dets: torch.Tensor, iou_thres=0.45):
+    '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
+    eps = 1e-8
+    x1 = dets[:, 0]
+    y1 = dets[:, 1]
+    x2 = dets[:, 2]
+    y2 = dets[:, 3]
+
+    areas = (x2 - x1) * (y2 - y1)
+    order = dets[:, 4].sort().indices.flip(0)
+    kept_output = []
+
+    zero = torch.tensor(0).to(dets.device)
+
+    while order.shape[0] > 0:
+        pick_ind = order[0]
+        kept_output.append(pick_ind)
+        order = order[1:]
+        xx1 = torch.maximum(x1[pick_ind], x1[order])
+        yy1 = torch.maximum(y1[pick_ind], y1[order])
+        xx2 = torch.minimum(x2[pick_ind], x2[order])
+        yy2 = torch.minimum(y2[pick_ind], y2[order])
+
+        inter = torch.maximum(zero, xx2 - xx1) * torch.maximum(zero, yy2 - yy1)
+        iou = inter / (areas[pick_ind] + areas[order] - inter + eps)
+        order = order[torch.le(iou, iou_thres)]
+
+    kept_output = torch.stack(kept_output, dim=0)
+    return kept_output
+
+def nms_np(dets, iou_thresh):
+    '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
+    eps = 1e-8
+    x1 = np.ascontiguousarray(dets[:, 0])
+    y1 = np.ascontiguousarray(dets[:, 1])
+    x2 = np.ascontiguousarray(dets[:, 2])
+    y2 = np.ascontiguousarray(dets[:, 3])
+
+    areas = (x2 - x1) * (y2 - y1)
+    order = dets[:, 4].argsort()[::-1]
+    kept_output = []
+
+    while order.size > 0:
+        pick_ind = order[0]
+        kept_output.append(pick_ind)
+
+        xx1 = np.maximum(x1[pick_ind], x1[order[1:]])
+        yy1 = np.maximum(y1[pick_ind], y1[order[1:]])
+        xx2 = np.minimum(x2[pick_ind], x2[order[1:]])
+        yy2 = np.minimum(y2[pick_ind], y2[order[1:]])
+
+        inter = np.maximum(0.0, xx2 - xx1) * np.maximum(0.0, yy2 - yy1)
+        iou = inter / (areas[pick_ind] + areas[order[1:]] - inter + eps)
+        order = order[np.where(iou <= iou_thresh)[0] + 1] # +1 since the idxs is cal at order[1:]
+
+    return kept_output
+
+def soft_nms():
+    pass
+
+def set_nms():
+    pass
+
 def xywh2xyxy(x):
     # Convert boxes with shape [n, 4] from [x, y, w, h] to [x1, y1, x2, y2] where x1y1 is top-left, x2y2=bottom-right
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
@@ -88,3 +152,7 @@ def xywh2xyxy(x):
     y[:, 2] = x[:, 0] + x[:, 2] / 2  # bottom right x
     y[:, 3] = x[:, 1] + x[:, 3] / 2  # bottom right y
     return y
+
+if __name__ == "__main__":
+    test_det = np.ones((10, 5)) * 0.99
+    nms_np(test_det, 0.6)
