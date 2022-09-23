@@ -71,7 +71,7 @@ def weight_init(m):
     if isinstance(m, nn.BatchNorm2d):
         m.weight.data.fill_(1)
         m.bias.data.zero_()
-        m.eps = 1e-3
+        # m.eps = 1e-3
         m.momentum = 0.03
 
 def head_bias_init(prior_prob):
