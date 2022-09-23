@@ -48,7 +48,7 @@ class BuildModel():
                            **main_model_dict)
 
         # weight init
-        model.apply(weight_init)
+        model.apply(weight_init(self.config))
         model.head.apply(head_bias_init(0.01))
 
         print("Num of Parameters: %.2fM"%(numofParameters(model)/1e6))
@@ -64,15 +64,17 @@ class BuildModel():
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
 
-def weight_init(m):
-    if isinstance(m, nn.Conv2d):
-        nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+def weight_init(config):
+    def init_func(m):
+        if isinstance(m, nn.Conv2d):
+            nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
 
-    if isinstance(m, nn.BatchNorm2d):
-        m.weight.data.fill_(1)
-        m.bias.data.zero_()
-        # m.eps = 1e-3
-        m.momentum = 0.03
+        if isinstance(m, nn.BatchNorm2d):
+            m.weight.data.fill_(config.model.init.bn_weight)
+            m.bias.data.fill_(config.model.init.bn_bias)
+            m.eps = config.model.init.bn_eps
+            m.momentum = config.model.init.bn_momentum
+    return init_func
 
 def head_bias_init(prior_prob):
     def init_func(m):

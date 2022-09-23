@@ -19,6 +19,12 @@ c.model.assignment_type = 'default'
 c.model.assignment_iou_type = 'iou'
 c.model.assignment_iou_threshold = 0.6
 
+c.model.init = CN()
+c.model.init.bn_weight = 1.0
+c.model.init.bn_bias = 0.0
+c.model.init.bn_eps = 1e-5
+c.model.init.bn_momentum = 0.1
+
 c.loss = CN()
 c.loss.reg_type = ['giou','l1']
 c.loss.cls_type = 'bce'
