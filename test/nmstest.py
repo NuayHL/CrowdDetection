@@ -15,10 +15,9 @@ from utility.assign import AnchorAssign, SimOTA
 from utility.anchors import Anchor, result_parse
 
 device = 1
-image_id = 700
-
+image_id = 120
 cfg = get_default_cfg()
-cfg.merge_from_files('cfgs/yolox_ota')
+cfg.merge_from_files('cfgs/yolox')
 
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
 sample = dataset[image_id]

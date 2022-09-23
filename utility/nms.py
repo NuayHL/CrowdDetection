@@ -3,6 +3,21 @@ import torch
 import torchvision
 import numpy as np
 
+
+class NMS():
+    def __init__(self, config):
+        self.config = config
+        self.conf_thres = config.inference.obj_thres
+        self.iou_thres = config.inference.iou_thres
+
+    def __call__(self, dets):
+        num_classes = dets.shape[2] - 5  # number of classes
+        pred_candidates = dets[..., 4] > self.conf_thres  # candidates
+
+        for ib, det in enumerate(dets):
+            det = det[pred_candidates[ib]]
+
+
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False, max_det=300):
     """Runs Non-Maximum Suppression (NMS) on inference results.
     This code is borrowed from: https://github.com/ultralytics/yolov5/blob/47233e1698b89fc437a4fb9463c815e9171be955/utils/general.py#L775
@@ -68,9 +83,10 @@ def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=Non
 
         # Batched NMS
         class_offset = x[:, 5:6] * (0 if agnostic else max_wh)  # classes
-        boxes, scores = x[:, :4] + class_offset, x[:, 4]  # boxes (offset by class), scores
-        keep_box_idx = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
-        #keep_box_idx = nms_tensor(torch.cat([boxes, scores], dim=1), iou_thres)
+        boxes, scores = x[:, :4] + class_offset, x[:, 4:5]  # boxes (offset by class), scores
+        #keep_box_idx = torchvision.ops.nms(boxes, scores, iou_thres)  # NMS
+        keep_box_idx = nms_tensor(torch.cat([boxes, scores], dim=1), iou_thres)
+        #keep_box_idx = soft_nms_tensor(torch.cat([boxes, scores], dim=1), iou_thres, conf_thres)
         if keep_box_idx.shape[0] > max_det:  # limit detections
             keep_box_idx = keep_box_idx[:max_det]
 
@@ -111,6 +127,51 @@ def nms_tensor(dets: torch.Tensor, iou_thres=0.45):
     kept_output = torch.stack(kept_output, dim=0)
     return kept_output
 
+def soft_nms_tensor(dets: torch.Tensor, iou_thres=0.45, score_thres=0.5):
+    '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
+    eps = 1e-8
+    x1 = dets[:, 0]
+    y1 = dets[:, 1]
+    x2 = dets[:, 2]
+    y2 = dets[:, 3]
+
+    areas = (x2 - x1) * (y2 - y1)
+    order = dets[:, 4].sort().indices.flip(0)
+    kept_output = []
+
+    zero = torch.tensor(0.0).to(dets.device)
+    one = torch.tensor(1.0).to(dets.device)
+
+    def standard(iou):
+        return 0
+    def normal_kernel(iou):
+        return 1-iou
+    def gaussian_kernel(iou):
+        return torch.exp(-(iou*iou)/0.5)
+
+    func = normal_kernel
+
+    while order.shape[0] > 0:
+        pick_ind = order[0]
+        kept_output.append(pick_ind)
+        order = order[1:]
+        xx1 = torch.maximum(x1[pick_ind], x1[order])
+        yy1 = torch.maximum(y1[pick_ind], y1[order])
+        xx2 = torch.minimum(x2[pick_ind], x2[order])
+        yy2 = torch.minimum(y2[pick_ind], y2[order])
+
+        inter = torch.maximum(zero, xx2 - xx1) * torch.maximum(zero, yy2 - yy1)
+        iou = inter / (areas[pick_ind] + areas[order] - inter + eps)
+
+        weight = torch.where(iou>iou_thres, func(iou), one)
+        dets[order, 4] *= weight
+
+        order = order[torch.ge(dets[order, 4], score_thres)]
+
+    kept_output = torch.stack(kept_output, dim=0)
+    return kept_output
+
+
 def nms_np(dets, iou_thresh):
     '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
     eps = 1e-8
@@ -137,9 +198,6 @@ def nms_np(dets, iou_thresh):
         order = order[np.where(iou <= iou_thresh)[0] + 1] # +1 since the idxs is cal at order[1:]
 
     return kept_output
-
-def soft_nms():
-    pass
 
 def set_nms():
     pass
