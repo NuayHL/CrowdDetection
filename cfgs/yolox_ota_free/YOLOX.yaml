@@ -25,4 +25,8 @@ model:
                      'neck':{'depth':1.0, 'depthwise':False, 'act':'silu'},
                      'head':{'depthwise':False, 'act':'silu'},}]
   use_anchor: False
+  stride_scale: 2.0
+  init:
+    bn_eps: 1e-3
+    bn_momentum: 0.03
 seed: None
