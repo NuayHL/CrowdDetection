@@ -13,7 +13,7 @@ class NMS():
     def __call__(self, dets):
         num_classes = dets.shape[2] - 5  # number of classes
         pred_candidates = dets[..., 4] > self.conf_thres  # candidates
-
+        output = [torch.zeros((0, 6), device=dets.device)] * dets.shape[0]
         for ib, det in enumerate(dets):
             det = det[pred_candidates[ib]]
 
