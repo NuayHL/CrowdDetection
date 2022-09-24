@@ -1,7 +1,7 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path, '../odcore'))
+sys.path.append(os.path.join(path, 'odcore'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
@@ -14,7 +14,7 @@ from config import get_default_cfg
 from utility.assign import AnchorAssign, SimOTA
 from utility.anchors import Anchor, result_parse
 
-device = 1
+device = 0
 
 cfg = get_default_cfg()
 cfg.merge_from_files('cfgs/yolox_ota_free')
@@ -37,8 +37,8 @@ model.set(None, device)
 model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
 
-# para = torch.load('running_log/YOLOX_640_OTA_1/best_epoch.pth')
-# model.load_state_dict(para['model'])
+para = torch.load('running_log/YOLOX_640_OTA_free/best_epoch.pth')
+model.load_state_dict(para['model'])
 dt = model.core(samples['imgs'])
 if cfg.model.use_anchor:
     anchs = anchorgen.gen_Bbox(singleBatch=True)

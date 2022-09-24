@@ -4,7 +4,6 @@ path = os.getcwd()
 sys.path.append(os.path.join(path, '../odcore'))
 import json
 import cv2
-from odcore.data.dataset import check_anno_bbox
 
 def progressbar(percentage, endstr='', barlenth=20):
     if int(percentage)==1: endstr +='\n'
