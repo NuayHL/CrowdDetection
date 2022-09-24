@@ -1,7 +1,7 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path, 'odcore'))
+sys.path.append(os.path.join(path, '../odcore'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
@@ -17,9 +17,9 @@ from utility.anchors import Anchor, result_parse
 device = 0
 
 cfg = get_default_cfg()
-cfg.merge_from_files('cfgs/yolox_ota_free')
+cfg.merge_from_files('../cfgs/yolox_ota_free')
 
-dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
+dataset = CocoDataset('../CrowdHuman/annotation_train_coco_style.json','../CrowdHuman/Images_train',cfg.data, 'val')
 sample = dataset[200]
 img = sample['img']
 gt = sample['anns']
@@ -37,7 +37,7 @@ model.set(None, device)
 model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
 
-para = torch.load('running_log/YOLOX_640_OTA_free/best_epoch.pth')
+para = torch.load('../running_log/YOLOX_640_OTA_free/best_epoch.pth')
 model.load_state_dict(para['model'])
 dt = model.core(samples['imgs'])
 if cfg.model.use_anchor:
