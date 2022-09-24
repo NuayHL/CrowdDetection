@@ -22,7 +22,11 @@ def main(args):
     result = result[0].to_ori_label()
     for i in result[:,4:]:
         print('score:', i[0],' category:',int(i[1]))
-    show_bbox(img, result[:,:4], type='x1y1x2y2', score=result[:, 4:] )
+    if args.labeled:
+        score = result[:, 4:]
+    else:
+        score = None
+    show_bbox(img, result[:,:4], type='x1y1x2y2', score=score )
 
 
 if __name__ == "__main__":
