@@ -42,6 +42,8 @@ y_anchor_center = anchor_points[:,1]
 print(anchor.gen_stride())
 from odcore.utils.misc import xywh_x1y1x2y2
 
+# testing new computer
+
 def get_in_boxes_info(gt_ib, anchor, stride):
     total_num_anchors = len(anchor)
     num_gt = len(gt_ib)
