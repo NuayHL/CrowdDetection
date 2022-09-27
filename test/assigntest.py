@@ -17,7 +17,7 @@ from utility.anchors import Anchor, result_parse
 device = 0
 
 cfg = get_default_cfg()
-cfg.merge_from_files('../cfgs/yolox_ota_free')
+cfg.merge_from_files('../cfgs/yolox_free_s2')
 
 dataset = CocoDataset('../CrowdHuman/annotation_train_coco_style.json','../CrowdHuman/Images_train',cfg.data, 'val')
 sample = dataset[200]

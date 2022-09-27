@@ -102,7 +102,8 @@ class RetinaNet(nn.Module):
         return fin_loss/num_pos_samples, fin_loss_dict
 
     def inferencing(self,sample):
-        cls, reg = self.core(sample['imgs'])
+        dt = self.core(sample['imgs'])
+        cls, reg = dt[:, 4:, :], dt[:, :4, :]
         anchors = self.anchs.t()
         anchors = torch.tile(anchors, (cls.shape[0], 1, 1))
 

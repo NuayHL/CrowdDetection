@@ -30,9 +30,9 @@ class YoloX(nn.Module):
             return self.inferencing(sample)
 
     def core(self,input):
-        p3, p4, p5 = self.backbone(input)
-        p3, p4, p5 = self.neck(p3, p4, p5)
-        dt = self.head(p3, p4, p5)
+        fms = self.backbone(input)
+        rea_fms = self.neck(*fms)
+        dt = self.head(*rea_fms)
         return dt
 
     def set(self, args, device):

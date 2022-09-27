@@ -21,10 +21,11 @@ class NMS():
         elif self.nms_type == "soft_g":
             self.func = self.gaussian_kernel
         else:
-            raise NotImplementedError("%s for NMS not supported, please using \'nms\' for standard NMS type, \'soft\' "
-                                      "for soft NMS. Check nms.py for more options...")
+            raise NotImplementedError("Type %s for NMS not supported, please using \'nms\' for standard NMS type,"
+                                      " \'soft\' for soft NMS. Check nms.py for more options." % self.nms_type)
 
     def __call__(self, dets, class_indepent=False):
+        '''Input: dets.shape = [B, n, xywh+o+c] reshaped raw output of the model'''
         num_classes = dets.shape[2] - 5  # number of classes
         batch_size = dets.shape[0]
         pred_candidates = dets[..., 4] > self.conf_thres  # candidates
