@@ -9,13 +9,21 @@ class NMS():
         self.config = config
         self.conf_thres = config.inference.obj_thres
         self.iou_thres = config.inference.iou_thres
+        self.maxwh = max(config.data.input_width, config.data.input_height)
 
-    def __call__(self, dets):
+    def __call__(self, dets, class_indepent=False):
         num_classes = dets.shape[2] - 5  # number of classes
+        batch_size = dets.shape[0]
         pred_candidates = dets[..., 4] > self.conf_thres  # candidates
-        output = [torch.zeros((0, 6), device=dets.device)] * dets.shape[0]
+        output = [torch.zeros((0, 6), device=dets.device)] * batch_size
         for ib, det in enumerate(dets):
             det = det[pred_candidates[ib]]
+            det[:, 5:] *= det[:, 4:5]
+            conf, categories = det[:, 5:].max(dim=1, keepdim=True)
+            class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
+            box = xywh2xyxy(det[:, :4]) + class_offset
+            det = torch.cat([box, conf])
+
 
 
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False, max_det=300):

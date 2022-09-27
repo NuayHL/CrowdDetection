@@ -5,4 +5,9 @@
 /coco_val/
 /coco_val_dt_yolov6/
 /illus/
+
+/__pycache__/
+*/__pycache__/*
+
+.idea/
 /Img/
