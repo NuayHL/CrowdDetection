@@ -2,14 +2,27 @@ import time
 import torch
 import torchvision
 import numpy as np
-
+import warnings
 
 class NMS():
     def __init__(self, config):
         self.config = config
+        self.nms_type = config.inference.nms_type.lower()
         self.conf_thres = config.inference.obj_thres
         self.iou_thres = config.inference.iou_thres
         self.maxwh = max(config.data.input_width, config.data.input_height)
+        self.set_func()
+
+    def set_func(self):
+        if self.nms_type == "nms":
+            self.func = self.standard
+        elif self.nms_type in ["soft_n", "soft"]:
+            self.func = self.normal_kernel
+        elif self.nms_type == "soft_g":
+            self.func = self.gaussian_kernel
+        else:
+            raise NotImplementedError("%s for NMS not supported, please using \'nms\' for standard NMS type, \'soft\' "
+                                      "for soft NMS. Check nms.py for more options...")
 
     def __call__(self, dets, class_indepent=False):
         num_classes = dets.shape[2] - 5  # number of classes
@@ -22,9 +35,57 @@ class NMS():
             conf, categories = det[:, 5:].max(dim=1, keepdim=True)
             class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
             box = xywh2xyxy(det[:, :4]) + class_offset
-            det = torch.cat([box, conf])
+            det = torch.cat([box, conf, categories], dim=1)
+            kept_box_mask = self._nms(det[:, :5])
+            output[ib] = det[kept_box_mask]
+        return output
 
+    def _nms(self, dets):
+        '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
+        eps = 1e-8
+        x1 = dets[:, 0]
+        y1 = dets[:, 1]
+        x2 = dets[:, 2]
+        y2 = dets[:, 3]
 
+        areas = (x2 - x1) * (y2 - y1)
+        order = dets[:, 4].sort().indices.flip(0)
+        kept_output = []
+
+        zero = torch.tensor(0.0).to(dets.device)
+        one = torch.tensor(1.0).to(dets.device)
+
+        while order.shape[0] > 0:
+            pick_ind = order[0]
+            kept_output.append(pick_ind)
+            order = order[1:]
+            xx1 = torch.maximum(x1[pick_ind], x1[order])
+            yy1 = torch.maximum(y1[pick_ind], y1[order])
+            xx2 = torch.minimum(x2[pick_ind], x2[order])
+            yy2 = torch.minimum(y2[pick_ind], y2[order])
+
+            inter = torch.maximum(zero, xx2 - xx1) * torch.maximum(zero, yy2 - yy1)
+            iou = inter / (areas[pick_ind] + areas[order] - inter + eps)
+
+            weight = torch.where(iou > self.iou_thres, self.func(iou), one)
+            dets[order, 4] *= weight
+
+            order = order[torch.ge(dets[order, 4], self.conf_thres)]
+
+        kept_output = torch.stack(kept_output, dim=0)
+        return kept_output
+
+    @staticmethod
+    def standard(iou):
+        return 0
+
+    @staticmethod
+    def normal_kernel(iou):
+        return 1 - iou
+
+    @staticmethod
+    def gaussian_kernel(iou):
+        return torch.exp(-(iou * iou) / 0.5)
 
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False, max_det=300):
     """Runs Non-Maximum Suppression (NMS) on inference results.

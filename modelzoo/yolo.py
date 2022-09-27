@@ -5,7 +5,7 @@ import torch.cuda.amp as amp
 from utility.assign import get_assign_method
 from utility.anchors import generateAnchors, result_parse, Anchor
 from utility.loss import GeneralLoss_fix, updata_loss_dict
-from utility.nms import non_max_suppression
+from utility.nms import non_max_suppression, NMS
 from utility.result import Result
 
 # model.set(args, device)
@@ -21,6 +21,7 @@ class YoloX(nn.Module):
         self.head = head
         self.sigmoid = nn.Sigmoid()
         self.input_shape = (self.config.data.input_width, self.config.data.input_height)
+        self.nms = NMS(config)
 
     def forward(self, sample):
         if self.training:
@@ -125,15 +126,11 @@ class YoloX(nn.Module):
 
         # restore the predicting bboxes via pre-defined anchors
         dt[:, :4, :] = self.get_shift_bbox(dt[:, :4, :])
-
         dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
-
         dt = torch.permute(dt, (0,2,1))
-        if self.config.inference.nms_type == 'nms':
-            result_list = non_max_suppression(dt, conf_thres=self.config.inference.obj_thres,
-                                              iou_thres=self.config.inference.iou_thres)
-        else:
-            raise NotImplementedError
+
+        result_list = self.nms(dt)
+
         fin_result = []
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
             fin_result.append(Result(result, id, ori_shape, self.input_shape))
