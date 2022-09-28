@@ -59,7 +59,7 @@ class BuildModel():
             return Yolov3
         elif self.model_name == 'retinanet':
             return RetinaNet
-        elif self.model_name == 'yolox':
+        elif self.model_name in ['yolox', 'yolo_like']:
             return YoloX
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))

@@ -15,9 +15,9 @@ def build_backbone(name):
         return resnet34, 128
     elif name == 'resnet50':
         return resnet50, 512
-    elif name == 'resnet18':
+    elif name == 'resnet101':
         return resnet101, 512
-    elif name == 'resnet18':
+    elif name == 'resnet152':
         return resnet152, 512
     elif name == 'cspdarknet':
         return CSPDarknet, None

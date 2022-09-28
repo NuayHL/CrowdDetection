@@ -16,8 +16,8 @@ model:
   assignment_iou_threshold: 0.5
   assignment_iou_type: iou
   assignment_type: simOTA
-  fpnlevels: [3, 4, 5， 6， 7]
-  name: yolox
+  fpnlevels: [3, 4, 5, 6, 7]
+  name: yolo_like
   backbone: resnet101
   head: retina_head
   neck: retina_neck

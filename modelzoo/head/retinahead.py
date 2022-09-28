@@ -42,4 +42,4 @@ class Retina_head(nn.Module):
             reg.append(reg_i)
         cls = torch.cat(cls, dim=2)
         reg = torch.cat(reg, dim=2)
-        return torch.cat([cls, reg], dim=1)
+        return torch.cat([reg, cls], dim=1)

@@ -33,7 +33,7 @@ class Result():
 
     def to_ori_label(self, reconstruct_shape=True, letterboxinput=True):
         '''x1y1x2y2 output, shape(w, h)'''
-        if self.result.shape[0] == 0: return np.zeros((1,5))
+        if self.result.shape[0] == 0: return np.zeros((1,6))
         outresult = self.result.copy()
         if reconstruct_shape:
             if letterboxinput:
