@@ -101,6 +101,67 @@ class GeneralLoss_fix():
             losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
+class PedestrianLoss():
+    def __init__(self, config, device, reduction='sum'):
+        self.config = config
+        self.device = device
+        self.reduction = reduction
+        self.loss_parse()
+        self.zero = torch.tensor(0, dtype=torch.float32).to(device)
+
+    def loss_parse(self):
+        assert len(self.config.loss.reg_type) == len(self.config.loss.weight - 1) - 1
+        self.iou_type = None
+        self.use_l1 = None
+        for method in self.config.loss.reg_type:
+            if method in ['ciou', 'diou', 'giou', 'siou']:
+                self.iou_type = method
+                self.iou_loss = IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction)
+            elif method in ['l1']:
+                self.use_l1 = True
+                self.l1_loss = L1(self.reduction)
+            else:
+                raise NotImplementedError('Invalid reg loss type %s' % method)
+        assert self.iou_type != None or self.use_l1 != None, 'Reg loss must have l1 or iou!'
+
+        self.obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
+
+        self.loss_weight = {'obj': self.config.loss.weight[0]}
+        if self.iou_type:
+            self.loss_weight['iou'] = self.config.loss.weight[1]
+        if self.use_l1:
+            if self.iou_type:
+                self.loss_weight['l1'] = self.config.loss.weight[2]
+            else:
+                self.loss_weight['l1'] = self.config.loss.weight[1]
+
+    def __call__(self, dt_list, gt_list):
+        '''
+        dt_dict.keys() = [obj, iou, l1]  must have iou or l1
+        gt_dict.keys() = [obj, iou, l1]
+        '''
+        losses = {}
+        pos_num_samples = dt_list['iou' if 'iou' in dt_list else 'l1'].shape[1]
+        if pos_num_samples != 0:
+            if 'iou' in dt_list:
+                losses[self.iou_type] = self.iou_loss(dt_list['iou'], gt_list['iou']) * self.loss_weight['iou']
+            if 'l1' in dt_list:
+                losses['l1'] = self.l1_loss(dt_list['l1'], gt_list['l1']) * self.loss_weight['l1']
+        else:
+            if 'iou' in dt_list:
+                losses[self.iou_type] = self.zero
+            if 'l1' in dt_list:
+                losses['l1'] = self.zero
+
+        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / pos_num_samples
+
+        fin_loss = 0
+        for loss in losses.values():
+            fin_loss += loss
+        for key in losses:
+            losses[key] = losses[key].detach().cpu().item()
+        return fin_loss, losses
+
 class FocalBCElogits():
     def __init__(self, config, device, reduction='none'):
         self.reduction = reduction
