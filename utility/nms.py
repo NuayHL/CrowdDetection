@@ -37,12 +37,14 @@ class NMS():
             class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
             box = xywh2xyxy(det[:, :4]) + class_offset
             det = torch.cat([box, conf, categories], dim=1)
+            if det.shape[0] == 0:
+                continue
             kept_box_mask = self._nms(det[:, :5])
             output[ib] = det[kept_box_mask]
         return output
 
     def _nms(self, dets):
-        '''det: [n,5], 5: x1y1x2y2 score, return kept indices'''
+        '''det: [n,5], 5: x1y1x2y2 score, return kept indices. Warning: n must > 0'''
         eps = 1e-8
         x1 = dets[:, 0]
         y1 = dets[:, 1]
