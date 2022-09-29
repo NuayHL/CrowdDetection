@@ -1,8 +1,8 @@
 exp_name: YOLOX_640_OTA_free
 inference:
   iou_thres: 0.6
-  nms_type: nms
-  obj_thres: 0.5
+  nms_type: soft_g
+  obj_thres: 0.25
 loss:
   cls_type: bce
   focal_alpha: 0.25
