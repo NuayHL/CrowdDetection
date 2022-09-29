@@ -27,4 +27,4 @@ model:
   init:
     bn_eps: 1e-5
     bn_momentum: 0.03
-seed: None
+seed: 1057014

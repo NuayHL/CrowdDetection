@@ -1,4 +1,4 @@
-exp_name: YOLOX_640_OTA_free
+exp_name: YOLOX_s2
 inference:
   iou_thres: 0.6
   nms_type: soft_g
@@ -29,4 +29,4 @@ model:
   init:
     bn_eps: 1e-3
     bn_momentum: 0.03
-seed: None
+seed: 114514
