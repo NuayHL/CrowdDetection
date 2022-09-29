@@ -8,10 +8,10 @@ training:
   warm_up_steps: 1000
   using_autocast: True
   optimizer:
-    lr: 0.0025
+    lr: 0.0001
     mode: default
     momentum: 0.937
-    type: sgd
+    type: adam
     warm_up_init_lr: 1e-05
     warm_up_init_momentum: 0.8
     weight_decay: 0.0005
