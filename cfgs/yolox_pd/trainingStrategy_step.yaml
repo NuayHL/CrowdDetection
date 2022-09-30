@@ -1,0 +1,25 @@
+training:
+  accumulate: 1
+  batch_size: 32
+  workers: 8
+  eval_interval: 20
+  final_epoch: 300
+  last_no_mosaic: 0
+  warm_up_steps: 1000
+  using_autocast: True
+  optimizer:
+    lr: 0.005
+    mode: default
+    momentum: 0.937
+    type: sgd
+    warm_up_init_lr: 1e-05
+    warm_up_init_momentum: 0.8
+    weight_decay: 0.0005
+  schedular:
+    type: cosine
+    extra: [{"lrf": 0.01}]
+  train_img_anns_path: CrowdHuman/annotation_train_coco_style.json
+  train_img_path: CrowdHuman/Images_train
+  val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
+  val_img_path: CrowdHuman/Images_val
+  val_metric: coco

@@ -110,7 +110,7 @@ class PedestrianLoss():
         self.zero = torch.tensor(0, dtype=torch.float32).to(device)
 
     def loss_parse(self):
-        assert len(self.config.loss.reg_type) == len(self.config.loss.weight - 1) - 1
+        assert len(self.config.loss.reg_type) == len(self.config.loss.weight) - 1
         self.iou_type = None
         self.use_l1 = None
         for method in self.config.loss.reg_type:
@@ -153,7 +153,7 @@ class PedestrianLoss():
             if 'l1' in dt_list:
                 losses['l1'] = self.zero
 
-        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / pos_num_samples
+        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight['obj'] / pos_num_samples
 
         fin_loss = 0
         for loss in losses.values():

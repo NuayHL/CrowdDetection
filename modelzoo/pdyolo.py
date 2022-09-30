@@ -10,11 +10,11 @@ from utility.nms import NMS
 from utility.result import Result
 
 
-class DPYOLO(BaseODModel):
+class PDYOLO(BaseODModel):
     '''4 + 1'''
 
     def __init__(self, config, backbone, neck, head):
-        super(DPYOLO, self).__init__()
+        super(PDYOLO, self).__init__()
         self.config = config
         self.backbone = backbone
         self.neck = neck
@@ -34,7 +34,7 @@ class DPYOLO(BaseODModel):
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = get_assign_method(self.config, device)
         self.assign_type = self.config.model.assignment_type.lower()
-        assert self.assign_type not in ['pdsimota'], \
+        assert self.assign_type not in ['simota'], \
             'PDYOLO does not support simota assignment, consider default or pdsimota'
         self.anch_gen = Anchor(self.config)
         self.use_anchor = self.config.model.use_anchor

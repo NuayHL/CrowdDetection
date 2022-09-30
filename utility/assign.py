@@ -10,7 +10,7 @@ def get_assign_method(config, device):
     if type == 'simota':
         return SimOTA(config, device)
     elif type == 'pdsimota':
-        return SimOTA_PD
+        return SimOTA_PD(config, device)
     elif type == 'default':
         return AnchorAssign(config, device)
     else:

@@ -4,9 +4,11 @@ import torch.nn as nn
 import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
+
 from modelzoo.yolov3 import Yolov3
 from modelzoo.yolo import YoloX
 from modelzoo.retinanet import RetinaNet
+from modelzoo.pdyolo import PDYOLO
 
 class BuildModel():
     def __init__(self, config):
@@ -61,6 +63,8 @@ class BuildModel():
             return RetinaNet
         elif self.model_name in ['yolox', 'yolo_like']:
             return YoloX
+        elif self.model_name == 'pdyolo':
+            return PDYOLO
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
 
