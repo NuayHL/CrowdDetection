@@ -9,6 +9,8 @@ def get_assign_method(config, device):
     type = config.model.assignment_type.lower()
     if type == 'simota':
         return SimOTA(config, device)
+    elif type == 'pdsimota':
+        return SimOTA_PD
     elif type == 'default':
         return AnchorAssign(config, device)
     else:
@@ -271,6 +273,64 @@ class SimOTA():
             fg_mask_inboxes
         ]
         return matched_gt_inds, cls_weight
+
+class SimOTA_PD(SimOTA):
+    def __init__(self, config, device):
+        super(SimOTA_PD, self).__init__(config, device)
+
+    def assign(self, gt, shift_dt):
+        output_size = (len(gt), self.num_anch)
+        assign_result = torch.zeros(output_size).to(self.device)
+        obj_weights = []
+        fin_gt = []
+
+        for ib in range(len(gt)):
+            dt_ib = shift_dt[ib].t()
+            gt_ib = torch.from_numpy(gt[ib]).to(self.device)
+
+            if len(gt_ib) == 0: # deal with blank image
+                assign_result[ib] = torch.zeros(self.num_anch)
+                obj_weights.append(0)
+                fin_gt.append(gt_ib)
+                continue
+
+            in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
+                                                                               self.anchs,
+                                                                               self.stride)
+            shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
+            dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
+
+            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[0]
+            num_gt_ib = len(gt_ib)
+
+            iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
+            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
+
+            gt_cls_ib = gt_ib[:,4].to(torch.int64)
+
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes)\
+                .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
+
+            with torch.cuda.amp.autocast(enabled=False):
+                dt_cls_ib_ = dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_()
+                cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
+
+            cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
+
+            matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
+
+            # negative: 0
+            # ignore: -1
+            # positive: index+1
+            assignment = in_box_mask_ib.float()
+            assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
+
+            assign_result[ib] = assignment
+            obj_weights.append(cls_ib_weight)
+            fin_gt.append(gt_ib)
+
+        return assign_result, fin_gt, obj_weights
+
 
 class MIP():
     def __init__(self, config, device):

@@ -1,16 +1,14 @@
 import torch
 import torch.nn as nn
 
+from modelzoo.basemodel import BaseODModel
 from utility.assign import AnchorAssign
 from utility.anchors import generateAnchors, result_parse
 from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
 
-# model.set(args, device)
-# model.coco_parse_result(results) results: List of prediction
-
-class Yolov3(nn.Module):
+class Yolov3(BaseODModel):
     '''4 + 1 + classes'''
     def __init__(self, config, backbone, neck, head):
         super(Yolov3, self).__init__()
@@ -21,13 +19,7 @@ class Yolov3(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.input_shape = (self.config.data.input_width, self.config.data.input_height)
 
-    def forward(self, sample):
-        if self.training:
-            return self.training_loss(sample)
-        else:
-            return self.inferencing(sample)
-
-    def core(self,input):
+    def core(self, input):
         p3, p4, p5 = self.backbone(input)
         p3, p4, p5 = self.neck(p3, p4, p5)
         dt = self.head(p3, p4, p5)
@@ -132,20 +124,6 @@ class Yolov3(nn.Module):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))
         return fin_result
 
-    def _test_hot_map(self, sample):
-        dt = self.core(sample['imgs'])
-        hot_map = self.sigmoid(dt[:, 4, :])
-        assert len(hot_map.shape) == 2, "please using single batch input"
-        hot_map = hot_map.t().detach().cpu()
-        hot_map_list = result_parse(self.config, hot_map, restore_size=True)
-        return hot_map_list
 
-    @staticmethod
-    def coco_parse_result(results):
-        return Result.result_parse_for_json(results)
-
-    def _debug_to_file(self, *args,**kwargs):
-        with open('debug.txt', 'a') as f:
-            print(*args,**kwargs,file=f)
 
 
