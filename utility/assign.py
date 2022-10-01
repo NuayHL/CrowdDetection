@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from utility.iou import IOU
 from utility.anchors import Anchor, generateAnchors
 
+
 def get_assign_method(config, device):
     type = config.model.assignment_type.lower()
     if type == 'simota':
@@ -15,6 +16,7 @@ def get_assign_method(config, device):
         return AnchorAssign(config, device)
     else:
         raise NotImplementedError
+
 
 class AnchorAssign():
     def __init__(self, config, device):
@@ -45,12 +47,12 @@ class AnchorAssign():
         else:
             return self._retinaAssign(gt)
 
-    def _retinaAssign(self,gt):
-        output_size = (len(gt),self.anchs.shape[0])
+    def _retinaAssign(self, gt):
+        output_size = (len(gt), self.anchs.shape[0])
         assign_result = torch.zeros(output_size)
         assign_result = assign_result.to(self.device)
         for ib in range(len(gt)):
-            imgAnn = gt[ib][:,:4]
+            imgAnn = gt[ib][:, :4]
             imgAnn = torch.from_numpy(imgAnn).float()
             if torch.cuda.is_available():
                 imgAnn = imgAnn.to(self.device)
@@ -62,20 +64,20 @@ class AnchorAssign():
             # ignore: -1
             # positive: index+1
             print(iou_max_value.dtype)
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(),iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value)
+            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(), iou_max_value)
+            iou_max_value = torch.where(iou_max_value < self.threshold_iou - 0.1, 1.0, iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, 0., iou_max_value)
 
             # Assign at least one anchor to the gt
             iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
-            assign_result[ib] = iou_max_value-1
+            assign_result[ib] = iou_max_value - 1
 
         return assign_result, gt, None
 
-    def _retinaAssign_using_ignored(self,gt):
+    def _retinaAssign_using_ignored(self, gt):
         ''':return: assign result, real gt(exclude ignored ones), all already to tensor'''
         # initialize assign result
-        output_size = (len(gt),self.anchs.shape[0])
+        output_size = (len(gt), self.anchs.shape[0])
         assign_result = torch.zeros(output_size).to(self.device)
 
         # prepare return real gt
@@ -98,8 +100,8 @@ class AnchorAssign():
             # negative: 0
             # ignore: -1
             # positive: index+1
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(),iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou-0.1, 1.0, iou_max_value.double())
+            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(), iou_max_value)
+            iou_max_value = torch.where(iou_max_value < self.threshold_iou - 0.1, 1.0, iou_max_value.double())
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, .0, iou_max_value.double())
 
             # Assign at least one anchor to the gt
@@ -116,13 +118,14 @@ class AnchorAssign():
                 false_sample[ignored_anchor_idx] = 0
                 iou_max_value[false_sample_idx] = false_sample
 
-            assign_result[ib] = iou_max_value-1
+            assign_result[ib] = iou_max_value - 1
 
         return assign_result, real_gt, None
 
+
 # This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
 class SimOTA():
-    def __init__(self,config, device):
+    def __init__(self, config, device):
         self.config = config
         self.device = device
         anchorGen = Anchor(config)
@@ -146,7 +149,7 @@ class SimOTA():
             dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
 
-            if len(gt_ib) == 0: # deal with blank image
+            if len(gt_ib) == 0:  # deal with blank image
                 assign_result[ib] = torch.zeros(self.num_anch)
                 cls_weights.append(0)
                 fin_gt.append(gt_ib)
@@ -165,14 +168,14 @@ class SimOTA():
             iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
             iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
 
-            gt_cls_ib = gt_ib[:,4].to(torch.int64)
+            gt_cls_ib = gt_ib[:, 4].to(torch.int64)
 
-            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes)\
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes) \
                 .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
 
             with torch.cuda.amp.autocast(enabled=False):
-                dt_cls_ib_ = (dt_cls_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_()
-                                 * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_())
+                dt_cls_ib_ = (dt_cls_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_()
+                              * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_())
                 cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
 
             cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
@@ -259,11 +262,11 @@ class SimOTA():
         del topk_ious, dynamic_ks, pos_idx
 
         anchor_matching_gt = matching_matrix.sum(0)
-        if (anchor_matching_gt > 1).sum() > 0: # deal with the ambigous anchs
+        if (anchor_matching_gt > 1).sum() > 0:  # deal with the ambigous anchs
             _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
             matching_matrix[:, anchor_matching_gt > 1] *= 0
             matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
-        fg_mask_inboxes = matching_matrix.sum(0) > 0 # the final assigned ones among the in anchors
+        fg_mask_inboxes = matching_matrix.sum(0) > 0  # the final assigned ones among the in anchors
 
         fg_mask[fg_mask.clone()] = fg_mask_inboxes
 
@@ -274,10 +277,8 @@ class SimOTA():
         ]
         return matched_gt_inds, cls_weight
 
-class SimOTA_PD(SimOTA):
-    def __init__(self, config, device):
-        super(SimOTA_PD, self).__init__(config, device)
 
+class SimOTA_PD(SimOTA):
     def assign(self, gt, shift_dt):
         output_size = (len(gt), self.num_anch)
         assign_result = torch.zeros(output_size).to(self.device)
@@ -288,7 +289,7 @@ class SimOTA_PD(SimOTA):
             dt_ib = shift_dt[ib].t()
             gt_ib = torch.from_numpy(gt[ib]).to(self.device)
 
-            if len(gt_ib) == 0: # deal with blank image
+            if len(gt_ib) == 0:  # deal with blank image
                 assign_result[ib] = torch.zeros(self.num_anch)
                 obj_weights.append(0)
                 fin_gt.append(gt_ib)
@@ -306,13 +307,13 @@ class SimOTA_PD(SimOTA):
             iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
             iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
 
-            gt_cls_ib = gt_ib[:,4].to(torch.int64)
+            gt_cls_ib = gt_ib[:, 4].to(torch.int64)
 
-            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes)\
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes) \
                 .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
 
             with torch.cuda.amp.autocast(enabled=False):
-                dt_cls_ib_ = dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib,1,1).sigmoid_()
+                dt_cls_ib_ = dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_()
                 cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
 
             cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
@@ -355,7 +356,7 @@ class MIP():
         weight = torch.zeros(output_size)
         assign_result = assign_result.to(self.device)
         for ib in range(len(gt)):
-            imgAnn = gt[ib][:,:4]
+            imgAnn = gt[ib][:, :4]
             imgAnn = torch.from_numpy(imgAnn).float()
             if torch.cuda.is_available():
                 imgAnn = imgAnn.to(self.device)
@@ -364,13 +365,11 @@ class MIP():
             # negative: 0
             # positive: index+1
             assign_result_ib = torch.where(iou_max_value >= self.threshold_iou,
-                                        (iou_max_idx + 1.0).float(),
-                                        self.zero)
+                                           (iou_max_idx + 1.0).float(),
+                                           self.zero)
             weight_ib = torch.where(iou_max_value >= self.threshold_iou,
-                                        (iou_max_value).float(),
-                                        self.zero)
+                                    (iou_max_value).float(),
+                                    self.zero)
             assign_result[ib] = assign_result_ib
             weight[ib] = weight_ib
         return assign_result, gt, weight
-
-
