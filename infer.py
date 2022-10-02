@@ -16,10 +16,10 @@ class Infer():
         builder = BuildModel(cfg)
         model = builder.build()
         model.set(args, self.device)
-        self.infer = _Infer(cfg, args, model, self.device)
+        self.core_infer = _Infer(cfg, args, model, self.device)
 
     def __call__(self, img, img_only=False):
-        result, img = self.infer(img)
+        result, img = self.core_infer(img)
         result = result[0].to_ori_label()
         if not img_only:
             return result, img
