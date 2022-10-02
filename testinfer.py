@@ -1,14 +1,12 @@
 import os
 import sys
-
-from odcore.data.dataset import VideoDataset
-
 path = os.getcwd()
 sys.path.append(os.path.join(path, 'odcore'))
 import cv2
 from infer import Infer
 from config import get_default_cfg
 from odcore.args import get_infer_args_parser
+from odcore.data.dataset import VideoDataset
 from odcore.utils.misc import progressbar
 import time
 
@@ -22,6 +20,7 @@ class VideoInfer():
         self.data = VideoDataset(self.file_path)
         self.core_infer = Infer(cfg, args, device)
         self.format = cv2.VideoWriter_fourcc(*'XVID')
+        self.pre_setting()
 
     def pre_setting(self):
         self.base_dir = os.path.dirname(self.file_path)
@@ -43,7 +42,7 @@ class VideoInfer():
             self.video_writer.write(input_frame)
             progressbar(float(id + 1) / len(self.data), barlenth=40)
         self.video_writer.release()
-        print('Inferencing Success in %.2f s' % (time.time() - start_time))
+        print('Inferencing Complete in %.2f s' % (time.time() - start_time))
 
 
 def main(args):
