@@ -19,7 +19,7 @@ class Infer():
         self.infer = _Infer(cfg, args, model, self.device)
 
     def __call__(self, img, img_only=False):
-        result, img = self.infer(args.img)
+        result, img = self.infer(img)
         result = result[0].to_ori_label()
         if not img_only:
             return result, img
@@ -28,13 +28,13 @@ class Infer():
             return img
 
 def main(args):
-    assert os.path.exists(args.img),'Invalid image path'
+    assert os.path.exists(args.source),'Invalid source path'
     cfg = get_default_cfg()
     cfg.merge_from_files(args.conf_file)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
     infer = Infer(cfg, args, 0)
     # ------------------------------------------------------------------------------------------------------------------
-    result, img = infer(args.img, img_only=False)
+    result, img = infer(args.source, img_only=False)
     for i in result[:,4:]:
         print('score:', i[0],' category:',int(i[1]))
     if args.labeled:
