@@ -4,16 +4,15 @@ import time
 
 import cv2
 
-from odcore.data.dataset import VideoDataset
-from odcore.utils.misc import progressbar
-
 path = os.getcwd()
-sys.path.append(os.path.join(path,'odcore'))
+sys.path.append(os.path.join(path, 'odcore'))
 from odcore.engine.infer import Infer as _Infer
 from config import get_default_cfg
 from odcore.args import get_infer_args_parser
 from odcore.utils.visualization import show_bbox, _add_bbox_img, printImg
 from modelzoo.build_models import BuildModel
+from odcore.data.dataset import VideoDataset
+from odcore.utils.misc import progressbar
 
 
 class BaseInfer():
@@ -41,6 +40,7 @@ class BaseInfer():
             score = None
         show_bbox(img, result[:, :4], type='x1y1x2y2', score=score)
 
+
 class VideoInfer():
     output_size = dict(ori=None, hd=(1280, 720), fhd=(1920, 1080), qhd=(2560, 1440), uhd=(3840, 2160))
 
@@ -50,6 +50,7 @@ class VideoInfer():
         self.data = VideoDataset(self.file_path)
         self.core_infer = BaseInfer(cfg, args, device)
         self.format = cv2.VideoWriter_fourcc(*'XVID')
+        self.pre_setting()
 
     def pre_setting(self):
         self.base_dir = os.path.dirname(self.file_path)
@@ -60,7 +61,7 @@ class VideoInfer():
         self.real_output_size = self.output_size if self.output_size else self.data.size
 
     def infer(self):
-        print('Inferencing Video: ')
+        print('Inferencing Video:')
         print('\t-Output Size: %d X %d' % (self.real_output_size[0], self.real_output_size[1]))
         print('\t-Output File: %s' % self.output_file)
         start_time = time.time()
@@ -68,28 +69,27 @@ class VideoInfer():
             det_result, ori_frame = self.core_infer(frame)
             output_frame = _add_bbox_img(ori_frame, det_result, type='x1y1x2y2')[:, :, ::-1]
             if self.output_size:
-                input_frame = cv2.resize(output_frame, self.output_size)
+                output_frame = cv2.resize(output_frame, self.output_size)
             self.video_writer.write(output_frame)
             progressbar(float(id + 1) / len(self.data), barlenth=40)
         self.video_writer.release()
         print('Inferencing Success in %.2f s' % (time.time() - start_time))
 
+
 # ----------------------------------------------------------------------------------------------------------------------
 def main(args):
-    assert os.path.exists(args.source),'Invalid source path'
+    assert os.path.exists(args.source), 'Invalid source path'
     cfg = get_default_cfg()
     cfg.merge_from_files(args.conf_file)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
     source_type = os.path.splitext(args.source)[1]
-    if source_type in ['mp4', 'avi']:
+    if source_type in ['.mp4', '.avi']:
         Infer = VideoInfer
     else:
         Infer = BaseInfer
 
     infer = Infer(cfg, args, 0)
     infer.infer()
-
-
 
 
 if __name__ == "__main__":
