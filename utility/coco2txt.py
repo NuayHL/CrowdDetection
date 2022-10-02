@@ -2,6 +2,7 @@ import os
 import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path, '../odcore'))
+os.chdir(os.path.join(path, '..'))
 import json
 from pycocotools.coco import COCO
 
@@ -54,5 +55,5 @@ def coco_dt_to_txt(gt_file, dt_file, output_folder_name):
 
 if __name__ == '__main__':
     coco_dt_to_txt('CrowdHuman/annotation_val_coco_style.json',
-                   'running_log/YOLOX_640_last20noMosaic/last_epoch_evalresult.json',
-                   'coco_val_dt')
+                   'running_log/YOLOX_pd/epoch_260_evalresult.json',
+                   'YOLOX_pd')

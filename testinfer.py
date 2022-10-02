@@ -29,6 +29,7 @@ class VideoDataset():
         if not success:
             self.cap.release()
             raise StopIteration
+        frame = cv2.resize(frame, (1920,1080))
         return frame[:, :, ::-1]
 
     def __len__(self):
@@ -40,7 +41,7 @@ class VideoInfer():
         self.data = VideoDataset(self.file_path)
         self.infer = Infer(cfg, args, device)
         self.format = cv2.VideoWriter_fourcc(*'XVID')
-        self.video_writer = cv2.VideoWriter('testing.avi', self.format, self.data.fps, self.data.size, True)
+        self.video_writer = cv2.VideoWriter('testing.avi', self.format, 60, (1920,1080), True)
 
     def detect(self):
         for id, frame in enumerate(self.data):
