@@ -46,7 +46,7 @@ class VideoInfer():
 
     def __init__(self, cfg, args, device):
         self.file_path = args.source
-        self.output_size = self.output_size[args.size]
+        self.resize_flag = self.output_size[args.size]
         self.data = VideoDataset(self.file_path)
         self.core_infer = BaseInfer(cfg, args, device)
         self.format = cv2.VideoWriter_fourcc(*'XVID')
@@ -57,8 +57,9 @@ class VideoInfer():
         self.file_name = os.path.basename(self.file_path)
         self.name = os.path.splitext(self.file_name)[0] + '_detect'
         self.output_file = os.path.join(self.base_dir, self.name) + '.avi'
-        self.video_writer = cv2.VideoWriter(self.output_file, self.format, self.data.fps, self.output_size, True)
-        self.real_output_size = self.output_size if self.output_size else self.data.size
+        self.real_output_size = self.resize_flag if self.resize_flag else self.data.size
+        self.video_writer = cv2.VideoWriter(self.output_file, self.format, self.data.fps, self.real_output_size, True)
+
 
     def infer(self):
         print('Inferencing Video:')
@@ -68,8 +69,8 @@ class VideoInfer():
         for id, frame in enumerate(self.data):
             det_result, ori_frame = self.core_infer(frame)
             output_frame = _add_bbox_img(ori_frame, det_result, type='x1y1x2y2')[:, :, ::-1]
-            if self.output_size:
-                output_frame = cv2.resize(output_frame, self.output_size)
+            if self.resize_flag:
+                output_frame = cv2.resize(output_frame, self.real_output_size)
             self.video_writer.write(output_frame)
             progressbar(float(id + 1) / len(self.data), barlenth=40)
         self.video_writer.release()
