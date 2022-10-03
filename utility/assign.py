@@ -122,6 +122,17 @@ class AnchorAssign():
 
         return assign_result, real_gt, None
 
+class AnchFreeAssign():
+    def __init__(self, config, device):
+        self.cfg = config
+        self.device = device
+        genAchor = Anchor(config)
+        self.anchs = torch.from_numpy(genAchor.gen_points(singleBatch=True)).float().to(device)
+        self.stride = torch.from_numpy(genAchor.gen_stride(singleBatch=True)).to(device)
+        self.anchs_len = self.anchs.shape[0]
+
+    def assign(self, gt):
+        pass
 
 # This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
 class SimOTA():

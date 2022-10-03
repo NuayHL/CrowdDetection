@@ -8,7 +8,7 @@ from config import get_default_cfg
 from odcore.args import get_infer_args_parser
 from odcore.engine.infer import Infer as _Infer
 from odcore.utils.visualization import show_bbox, _add_bbox_img, printImg
-from odcore.data.dataset import VideoDataset
+from odcore.data.dataset import VideoReader, FileImgReader
 from odcore.utils.misc import progressbar
 from modelzoo.build_models import BuildModel
 
@@ -29,7 +29,7 @@ class BaseInfer():
         return results, imgs
 
     def infer(self):
-        results, imgs = self(self.args.source)
+        results, imgs = self(self.args.img)
         for result, img in zip(results, imgs):
             for i in result[:, 4:]:
                 print('score:', i[0], ' category:', int(i[1]))
@@ -43,9 +43,14 @@ class VideoInfer():
     output_size = dict(ori=None, hd=(1280, 720), fhd=(1920, 1080), qhd=(2560, 1440), uhd=(3840, 2160))
 
     def __init__(self, cfg, args, device):
-        self.file_path = args.source
+        self.file_path = args.video
         self.resize_flag = self.output_size[args.size]
-        self.data = VideoDataset(self.file_path)
+        source_type = os.path.splitext(self.file_path)[1]
+        if source_type in ['.mp4', '.avi']:
+            Reader = VideoReader
+        else:
+            Reader = FileImgReader
+        self.data = Reader(self.file_path)
         self.core_infer = BaseInfer(cfg, args, device)
         self.format = cv2.VideoWriter_fourcc(*'XVID')
         self.pre_setting()
@@ -84,16 +89,22 @@ class VideoInfer():
 
 # ----------------------------------------------------------------------------------------------------------------------
 def main(args):
-    assert os.path.exists(args.source), 'Invalid source path'
+    source_type = None
+    if args.img != '':
+        source_type = 'img'
+        source = args.img
+        Infer = BaseInfer
+    elif args.video != '':
+        source_type = 'video'
+        source = args.video
+        Infer = VideoInfer
+    else:
+        raise NotImplementedError
+
+    assert os.path.exists(source), 'Invalid source path'
     cfg = get_default_cfg()
     cfg.merge_from_files(args.conf_file)
     os.environ["CUDA_VISIBLE_DEVICES"] = args.device
-    source_type = os.path.splitext(args.source)[1]
-    if source_type in ['.mp4', '.avi']:
-        Infer = VideoInfer
-    else:
-        Infer = BaseInfer
-
     infer = Infer(cfg, args, 0)
     infer.infer()
 

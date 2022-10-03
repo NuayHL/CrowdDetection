@@ -11,6 +11,7 @@ from config import get_default_cfg
 from utility.envs import get_envs, seed_init
 from modelzoo.build_models import BuildModel
 
+
 class Train():
     def __init__(self, args, rank, world_size=1):
         self.rank = rank
@@ -63,9 +64,11 @@ class Train():
             dist.init_process_group(backend="nccl" if dist.is_nccl_available() else "gloo",
                                     rank=self.rank, world_size=self.world_size)
 
+
 def init_training(rank, args, world_size):
     train = Train(args, rank, world_size)
     train.go()
+
 
 def main(args):
     os.environ["MASTER_ADDR"] = "localhost"
@@ -82,7 +85,7 @@ def main(args):
     if single_training:
         init_training(-1, args, 1)
     else:
-        mp.spawn(init_training,(args,world_size), nprocs=world_size)
+        mp.spawn(init_training, (args, world_size), nprocs=world_size)
 
 if __name__ == '__main__':
     # os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
