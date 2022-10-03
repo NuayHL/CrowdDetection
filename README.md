@@ -17,6 +17,8 @@ pip install -r requirments.txt
 - odcore Install (Providing training, evaluating, inferencing, etc backend)
   
   https://github.com/NuayHL/odcore
+
+  Note: This is my private Repo
 ```
 git clone https://github.com/NuayHL/odcore.git
 ```

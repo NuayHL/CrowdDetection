@@ -20,7 +20,7 @@ def main(args):
     model = builder.build()
     model.set(args, 0)
     infer = Infer(cfg, args, model, 0)
-    result, img = infer(args.img, "_test_hot_map")
+    result, img = infer(args.img, test_para="_test_hot_map")
     sum_result = []
     fig, ax = plt.subplots(3,4)
     for id, level in enumerate(result):
