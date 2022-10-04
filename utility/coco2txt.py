@@ -13,6 +13,7 @@ def progressbar(percentage, endstr='', barlenth=20):
           format(percentage * 100, '.1f'), '%', end=' '+endstr)
 
 def coco_gt_to_txt(jsonfile, output_folder_name):
+    '''output formate x1y1wh'''
     coco = COCO(jsonfile)
     assert not os.path.exists(output_folder_name),'output folder already exists!'
     os.makedirs(output_folder_name)
@@ -33,6 +34,7 @@ def coco_gt_to_txt(jsonfile, output_folder_name):
         progressbar((i+1)/total_imgs, barlenth=40)
 
 def coco_dt_to_txt(gt_file, dt_file, output_folder_name):
+    '''output formate x1y1wh'''
     gt = COCO(gt_file)
     cates = gt.cats
     with open(dt_file,'r') as f:
