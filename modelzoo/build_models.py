@@ -35,8 +35,8 @@ class BuildModel():
             neck_dict = sdict['neck']
             head_dict = sdict['head']
 
-        if backbone_name == 'cspdarknet':
-            p3c  = int(64 * backbone_dict['width']) * 4
+        if 'cspdarknet' in backbone_name:
+            p3c = int(64 * backbone_dict['width']) * 4
 
         classes = self.config.data.numofclasses
         anchors = 1
@@ -72,7 +72,8 @@ def weight_init(config):
     def init_func(m):
         if isinstance(m, nn.Conv2d):
             nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
-
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0.0)
         if isinstance(m, nn.BatchNorm2d):
             m.weight.data.fill_(config.model.init.bn_weight)
             m.bias.data.fill_(config.model.init.bn_bias)

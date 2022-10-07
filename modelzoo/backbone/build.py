@@ -1,6 +1,6 @@
 import torch
 
-from modelzoo.backbone.cspdarknet import CSPDarknet
+from modelzoo.backbone.cspdarknet import CSPDarknet, CSPDarknet_CBAM
 from modelzoo.backbone.darknet import Darknet53
 from modelzoo.backbone.resnet import resnet18, resnet34, resnet50, resnet101, resnet152
 
@@ -21,6 +21,8 @@ def build_backbone(name):
         return resnet152, 512
     elif name == 'cspdarknet':
         return CSPDarknet, None
+    elif name == 'cspdarknet_cbam':
+        return CSPDarknet_CBAM, None
     else:
         raise NotImplementedError('No backbone named %s' % (name))
 
