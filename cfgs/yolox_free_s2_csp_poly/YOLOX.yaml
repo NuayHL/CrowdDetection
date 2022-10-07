@@ -1,4 +1,4 @@
-exp_name: YOLOX_s2
+exp_name: YOLOX_s2_csp
 inference:
   iou_thres: 0.6
   nms_type: soft_g

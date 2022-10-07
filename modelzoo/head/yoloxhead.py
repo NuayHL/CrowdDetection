@@ -88,8 +88,9 @@ class YOLOX_head_csp(nn.Module):
 
         self.stems = nn.ModuleList()
         self.cls_conv = nn.ModuleList()
-        self.reg_conv = nn.ModuleList()
         self.cls_pred = nn.ModuleList()
+        self.reg_conv = nn.ModuleList()
+        self.loc_conv = nn.ModuleList()
         self.center_pred = nn.ModuleList()
         self.scale_pred = nn.ModuleList()
         self.obj_pred = nn.ModuleList()
