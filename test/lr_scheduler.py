@@ -15,4 +15,4 @@ cfg.merge_from_files('cfgs/yolox_pd_csp_poly')
 
 builder = LFScheduler(cfg)
 lf = builder.get_lr_fun()
-draw_scheduler(lf, 400)
+draw_scheduler(lf, 300)

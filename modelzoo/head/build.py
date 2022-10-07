@@ -2,7 +2,7 @@ import torch
 
 from modelzoo.head.retinahead import Retina_head
 from modelzoo.head.yolov3head import Yolov3_head
-from modelzoo.head.yoloxhead import YOLOX_head
+from modelzoo.head.yoloxhead import YOLOX_head,YOLOX_head_csp
 from modelzoo.head.csphead import PDHead, PDHead_csp
 
 """
@@ -21,6 +21,8 @@ def build_head(name):
         return Retina_head
     elif name == 'yolox_head':
         return YOLOX_head
+    elif name == 'yolox_head_csp':
+        return YOLOX_head_csp
     elif name == 'pdhead':
         return PDHead
     elif name == 'pdhead_csp':
