@@ -11,6 +11,12 @@ class Anchor():
     def gen_Bbox(self, singleBatch=False):
         # formate = xywh
         allAnchors = np.zeros((0, 4)).astype(np.float32)
+        assert len(self.ratios) == len(self.fpnlevels)
+        assert len(self.scales) == len(self.fpnlevels)
+        self.anchors_per_grid = len(self.ratios[0])
+        for grid_indi in self.ratios + self.scales:
+            assert len(grid_indi) == self.anchors_per_grid
+
         for idx, p in enumerate(self.fpnlevels):
             stride = [2 ** p, 2 ** p]
             xgrid = np.arange(0, self.config.data.input_width, stride[0]) + stride[0] / 2.0
@@ -18,13 +24,21 @@ class Anchor():
             xgrid, ygrid = np.meshgrid(xgrid, ygrid)
             anchors = np.vstack((xgrid.ravel(), ygrid.ravel()))
             lenAnchors = anchors.shape[1]
-            anchors = np.tile(anchors, (2, len(self.ratios) * len(self.scales))).T
+            anchors = np.tile(anchors, (2, self.anchors_per_grid)).T
             start = 0
-            for ratio in self.ratios:
-                for scale in self.scales:
-                    anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
-                    anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
-                    start += lenAnchors
+            # for ratio in self.ratios:
+            #     for scale in self.scales:
+            #         print(ratio, scale)
+            #         anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
+            #         anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
+            #         start += lenAnchors
+
+
+            for ratio, scale in zip(self.ratios[idx], self.scales[idx]):
+                anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
+                anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
+                start += lenAnchors
+
             allAnchors = np.append(allAnchors, anchors, axis=0)
 
         # singleBatch return total_anchor_number X 4
@@ -134,14 +148,10 @@ def anchors_parse(config, anchors, fplevel=None,ratios=None,scales=None):
         parsed_anch.append(ilevel_anch)
     return parsed_anch
 
-def result_parse(config, dt_liked, fplevel=None,ratios=None,scales=None, restore_size=False):
-    if fplevel is None:
-        fplevel = config.model.fpnlevels
-    if scales is None:
-        scales = config.model.anchor_scales
-    if ratios is None:
-        ratios = config.model.anchor_ratios
-    anchors_per_grid = len(scales) * len(ratios) if config.model.use_anchor else 1
+def result_parse(config, dt_liked, anchors_per_grid=None, restore_size=False):
+    fplevel = config.model.fpnlevels
+    if not anchors_per_grid:
+        anchors_per_grid = len(config.model.anchor_scales[0]) if config.model.use_anchor else 1
     width = config.data.input_width
     height = config.data.input_height
     begin_level = 0
@@ -151,17 +161,11 @@ def result_parse(config, dt_liked, fplevel=None,ratios=None,scales=None, restore
         i_w = width/(2**i)
         i_h = height/(2**i)
         for rs in range(anchors_per_grid):
-            temp = dt_liked[int(begin_level+rs*i_h*i_w):int(begin_level+(rs+1)*i_h*i_w),:]
+            temp = dt_liked[int(begin_level+rs*i_h*i_w):int(begin_level+(rs+1)*i_h*i_w), :]
             if restore_size:
                 temp = temp.reshape(int(i_h), int(i_w), -1)
             ilevel_anch.append(temp)
         begin_level += anchors_per_grid*i_h*i_w
         parsed_anch.append(ilevel_anch)
     return parsed_anch
-
-
-
-
-
-
 

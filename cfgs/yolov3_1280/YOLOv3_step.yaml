@@ -12,8 +12,12 @@ loss:
   weight: [5.0, 5.0, 0.3]
 model:
   name: yolov3
-  anchor_ratios: [2, 3]
-  anchor_scales: [0.75, 1]
+  anchor_ratios: [[2, 2, 3, 3],
+                  [2, 2, 3, 3],
+                  [2, 2, 3, 3]]
+  anchor_scales: [[0.75, 1, 0.75, 1],
+                  [0.75, 1, 0.75, 1],
+                  [0.75, 1, 0.75, 1]]
   assignment_iou_threshold: 0.5
   assignment_iou_type: iou
   assignment_type: default

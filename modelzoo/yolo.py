@@ -32,7 +32,6 @@ class YoloX(BaseODModel):
 
     def set(self, args, device):
         self.device = device
-        self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = get_assign_method(self.config, device)
         self.assign_type = self.config.model.assignment_type.lower()
         self.anch_gen = Anchor(self.config)

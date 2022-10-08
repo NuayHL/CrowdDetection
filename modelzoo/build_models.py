@@ -41,12 +41,12 @@ class BuildModel():
         classes = self.config.data.numofclasses
         anchors = 1
         if self.config.model.use_anchor:
-            anchors = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
+            anchors = len(self.config.model.anchor_ratios[0])
 
         model = main_model(self.config,
                            backbone=model_backbone(**backbone_dict),
                            neck=model_neck(p3c, **neck_dict),
-                           head=model_head(classes, anchors, int(p3c * p3c_r),**head_dict),
+                           head=model_head(classes, anchors, int(p3c * p3c_r), **head_dict),
                            **main_model_dict)
 
         # weight init

@@ -27,7 +27,7 @@ c.model.init.bn_eps = 1e-5
 c.model.init.bn_momentum = 0.1
 
 c.loss = CN()
-c.loss.reg_type = ['giou','l1']
+c.loss.reg_type = ['giou', 'l1']
 c.loss.cls_type = 'bce'
 c.loss.use_focal = False
 c.loss.focal_alpha = 0.25
