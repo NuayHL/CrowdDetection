@@ -33,16 +33,22 @@ def cal_anchors(config):
 
     box_size = bboxes.max(axis=1).reshape(-1, 1)
     box_ratio = bboxes[:, 1] / bboxes[:, 0]
+    box_ratio = box_ratio.reshape(-1, 1)
 
     kmeans.fit(box_size)
     scale_kmean_tick = time.time()
-
+    sizes = kmeans.cluster_centers_
+    groups = kmeans.labels_
     print("SizeKMeanComplete in %.2f s" % (scale_kmean_tick - size_kmeans_tick))
-    print(kmeans.cluster_centers_)
+    print(sizes)
+    convert_index = sizes.argsort()
+    print(convert_index)
 
-    size_group_index = list()
-
-
+    for idx in convert_index:
+        group_index = np.where(groups==idx)
+        kmeans.fit(box_ratio[group_index])
+        print(sizes[idx], ":")
+        print("\t", kmeans.cluster_centers_)
 
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
