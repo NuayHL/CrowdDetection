@@ -3,7 +3,6 @@ import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path, '../odcore'))
 os.chdir(os.path.join(path, '..'))
-import time
 import torch
 import numpy as np
 from sklearn.cluster import KMeans
@@ -11,49 +10,96 @@ from odcore.data.dataset import CocoDataset
 from odcore.utils.misc import progressbar
 from config import get_default_cfg
 
-def cal_anchors(config, bboxes=None):
-    fpnlevels = config.model.fpnlevels
 
-    kmeans = KMeans(n_clusters=len(fpnlevels), random_state=0)
-    if not isinstance(bboxes, np.ndarray):
+class AnchorKmeans():
+    def __init__(self, config, bbox_wh_path, anchors_per_grid=3):
+        self.config = config
+        self.bbox_wh_path = bbox_wh_path
+        self.anchors_per_grid = anchors_per_grid
+        self.get_bbox_wh()
+    def get_bbox_wh(self):
+        if not os.path.exists(self.bbox_wh_path):
+            dataset = CocoDataset(self.config.training.train_img_anns_path,
+                                  self.config.training.train_img_path,
+                                  self.config.data, 'val')
+
+            bbox_wh = []
+            for id, sample in enumerate(dataset):
+                bbox_wh.append(sample['anns'][:, 2:4])
+                progressbar((id + 1) / float(len(dataset)), barlenth=40)
+            bbox_wh = np.concatenate(bbox_wh, axis=0)
+            self.bbox_wh = np.ascontiguousarray(bbox_wh)
+            np.save(self.bbox_wh_path, self.bbox_wh)
+        else:
+            self.bbox_wh = np.load(self.bbox_wh_path)
+
+    def fit(self, fit_type='size_wise'):
+        assert fit_type in ['size_wise', 'single_wise']
+        if fit_type == 'size_wise':
+            self._size_wise_anchor_choose()
+        elif fit_type == 'single_wise':
+            self._single_wise_anchor_choose()
+    def _size_wise_anchor_choose(self):
+        fpnlevels = self.config.model.fpnlevels
+        base_stride = [2 ** (x + 2) for x in fpnlevels]
+        kmeans = KMeans(n_clusters=len(fpnlevels), random_state=0)
+        insize_kmeans = KMeans(n_clusters=self.anchors_per_grid, random_state=0)
+        box_size = self.bbox_wh[:, 0].reshape(-1, 1)
+        box_ratio = self.bbox_wh[:, 1] / self.bbox_wh[:, 0]
+        box_ratio = box_ratio.reshape(-1, 1)
+
+        kmeans.fit(box_size)
+        sizes = kmeans.cluster_centers_.flatten()
+        groups = kmeans.labels_
+        convert_index = sizes.argsort()
+
+        print('------------------------')
+        for idx, stride in zip(convert_index, base_stride):
+            group_index = np.where(groups == idx)
+            group_ratio = box_ratio[group_index]
+            insize_kmeans.fit(group_ratio)
+            ratios = insize_kmeans.cluster_centers_
+            for ratio in ratios:
+                print([sizes[idx]/stride, ratio])
+            print('------------------------')
+
+    def _single_wise_anchor_choose(self):
+        fpnlevels = self.config.model.fpnlevels
+        base_stride = [2 ** (x + 2) for x in fpnlevels]
+        kmeans = _AnchorKmeans(len(fpnlevels) * self.anchors_per_grid)
+        kmeans.fit(self.bbox_wh)
+        anchors = kmeans.anchors_
+        size = anchors[:, 0]
+        idx = size.argsort()
+        print('------------------------')
+        for i in range(len(fpnlevels)):
+            level_anchor = anchors[idx[i*self.anchors_per_grid:(i+1)*self.anchors_per_grid], :]
+            level_anchor[:, 0] /= base_stride[i]
+            print(level_anchor)
+            print('------------------------')
+def cal_anchors(config, bbox_wh_path, type='size_wise', anchors_per_grid=3):
+    if not os.path.exists(bbox_wh_path):
         dataset = CocoDataset(config.training.train_img_anns_path,
                               config.training.train_img_path,
                               config.data, 'val')
 
-        collecting_tick = time.time()
         bboxes = []
         for id, sample in enumerate(dataset):
             bboxes.append(sample['anns'][:, 2:4])
             progressbar((id+1)/float(len(dataset)), barlenth=40)
         bboxes = np.concatenate(bboxes, axis=0)
         bboxes = np.ascontiguousarray(bboxes)
-        np.save('crowdhuman_640.npy', bboxes)
-        size_kmeans_tick = time.time()
-        print("CollectComplete in %.2f s" % (size_kmeans_tick - collecting_tick))
+        np.save(bbox_wh_path, bboxes)
+    else:
+        bboxes = np.load(bbox_wh_path)
 
-    # box_size = bboxes.max(axis=1).reshape(-1, 1)
-    box_size = bboxes[:, 0].reshape(-1, 1)
-    box_ratio = bboxes[:, 1] / bboxes[:, 0]
-    box_ratio = box_ratio.reshape(-1, 1)
 
-    kmeans.fit(box_size)
-    sizes = kmeans.cluster_centers_.flatten()
-    groups = kmeans.labels_
-    print(sizes)
-    convert_index = sizes.argsort()
-    print(convert_index)
 
-    for idx in convert_index:
-        group_index = np.where(groups == idx)
-        group_ratio = box_ratio[group_index]
-        kmeans.fit(group_ratio)
-        print(sizes[idx], ":")
-        print(kmeans.cluster_centers_)
-        print('------------------------')
-
+def _single_wise_anchor_choose(bbox_wh: np.ndarray, config):
+    fpnlevels = config.model.fpnlevels
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
-class AnchorKmeans(object):
+class _AnchorKmeans(object):
     """
     K-means clustering on bounding boxes to generate anchors
     """
@@ -135,6 +181,7 @@ class AnchorKmeans(object):
         :return: None
         """
         return np.mean(self.ious_[np.arange(len(self.labels_)), self.labels_])
+
     @staticmethod
     def iou_tensor(boxes, anchors):
         boxes = boxes.unsqueeze(dim=1)
@@ -148,11 +195,7 @@ class AnchorKmeans(object):
 
 
 if __name__ == "__main__":
-    bboxes = np.load('crowdhuman_640.npy')
     cfg = get_default_cfg()
     cfg.merge_from_files('cfgs/yolox_ori')
     cal_anchors(cfg, bboxes)
 
-    anchorkmean = AnchorKmeans(9)
-    anchorkmean.fit(bboxes)
-    print(anchorkmean.anchors_)
