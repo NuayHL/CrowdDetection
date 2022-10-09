@@ -12,13 +12,14 @@ from config import get_default_cfg
 
 
 class AnchorKmeans():
-    def __init__(self, config, bbox_wh_path, anchors_per_grid=3):
+    def __init__(self, config, bbox_wh_path='', anchors_per_grid=3):
         self.config = config
         self.bbox_wh_path = bbox_wh_path
         self.anchors_per_grid = anchors_per_grid
         self.get_bbox_wh()
     def get_bbox_wh(self):
         if not os.path.exists(self.bbox_wh_path):
+            print('.npy file not find, collecting from training dataset..')
             dataset = CocoDataset(self.config.training.train_img_anns_path,
                                   self.config.training.train_img_path,
                                   self.config.data, 'val')
@@ -32,9 +33,11 @@ class AnchorKmeans():
             np.save(self.bbox_wh_path, self.bbox_wh)
         else:
             self.bbox_wh = np.load(self.bbox_wh_path)
+            print('load .npy file success')
 
     def fit(self, fit_type='size_wise'):
         assert fit_type in ['size_wise', 'single_wise']
+        print('calculating...')
         if fit_type == 'size_wise':
             self._size_wise_anchor_choose()
         elif fit_type == 'single_wise':
@@ -54,13 +57,14 @@ class AnchorKmeans():
         convert_index = sizes.argsort()
 
         print('------------------------')
-        for idx, stride in zip(convert_index, base_stride):
+        for idx, stride, level in zip(convert_index, base_stride, fpnlevels):
+            print('level:', level)
             group_index = np.where(groups == idx)
             group_ratio = box_ratio[group_index]
             insize_kmeans.fit(group_ratio)
-            ratios = insize_kmeans.cluster_centers_
+            ratios = insize_kmeans.cluster_centers_.flatten()
             for ratio in ratios:
-                print([sizes[idx]/stride, ratio])
+                print("[%.4f, %.4f]" % (sizes[idx]/stride, ratio))
             print('------------------------')
 
     def _single_wise_anchor_choose(self):
@@ -70,33 +74,16 @@ class AnchorKmeans():
         kmeans.fit(self.bbox_wh)
         anchors = kmeans.anchors_
         size = anchors[:, 0]
+        anchors[:, 1] /= anchors[:, 0]
         idx = size.argsort()
         print('------------------------')
         for i in range(len(fpnlevels)):
+            print('level:', fpnlevels[i])
             level_anchor = anchors[idx[i*self.anchors_per_grid:(i+1)*self.anchors_per_grid], :]
             level_anchor[:, 0] /= base_stride[i]
             print(level_anchor)
             print('------------------------')
-def cal_anchors(config, bbox_wh_path, type='size_wise', anchors_per_grid=3):
-    if not os.path.exists(bbox_wh_path):
-        dataset = CocoDataset(config.training.train_img_anns_path,
-                              config.training.train_img_path,
-                              config.data, 'val')
 
-        bboxes = []
-        for id, sample in enumerate(dataset):
-            bboxes.append(sample['anns'][:, 2:4])
-            progressbar((id+1)/float(len(dataset)), barlenth=40)
-        bboxes = np.concatenate(bboxes, axis=0)
-        bboxes = np.ascontiguousarray(bboxes)
-        np.save(bbox_wh_path, bboxes)
-    else:
-        bboxes = np.load(bbox_wh_path)
-
-
-
-def _single_wise_anchor_choose(bbox_wh: np.ndarray, config):
-    fpnlevels = config.model.fpnlevels
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
 class _AnchorKmeans(object):
@@ -197,5 +184,7 @@ class _AnchorKmeans(object):
 if __name__ == "__main__":
     cfg = get_default_cfg()
     cfg.merge_from_files('cfgs/yolox_ori')
-    cal_anchors(cfg, bboxes)
+    kmean = AnchorKmeans(cfg, 'crowdhuman_640.npy')
+    kmean.fit('size_wise')
+    kmean.fit('single_wise')
 
