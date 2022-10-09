@@ -11,44 +11,45 @@ from odcore.data.dataset import CocoDataset
 from odcore.utils.misc import progressbar
 from config import get_default_cfg
 
-def cal_anchors(config):
+def cal_anchors(config, bboxes=None):
     fpnlevels = config.model.fpnlevels
 
     kmeans = KMeans(n_clusters=len(fpnlevels), random_state=0)
+    if not isinstance(bboxes, np.ndarray):
+        dataset = CocoDataset(config.training.train_img_anns_path,
+                              config.training.train_img_path,
+                              config.data, 'val')
 
-    dataset = CocoDataset(config.training.train_img_anns_path,
-                          config.training.train_img_path,
-                          config.data, 'val')
+        collecting_tick = time.time()
+        bboxes = []
+        for id, sample in enumerate(dataset):
+            bboxes.append(sample['anns'][:, 2:4])
+            progressbar((id+1)/float(len(dataset)), barlenth=40)
+        bboxes = np.concatenate(bboxes, axis=0)
+        bboxes = np.ascontiguousarray(bboxes)
+        np.save('crowdhuman_640.npy', bboxes)
+        size_kmeans_tick = time.time()
+        print("CollectComplete in %.2f s" % (size_kmeans_tick - collecting_tick))
 
-    collecting_tick = time.time()
-    bboxes = []
-    for id, sample in enumerate(dataset):
-        bboxes.append(sample['anns'][:, 3:5])
-        progressbar((id+1)/float(len(dataset)), barlenth=40)
-    bboxes = np.concatenate(bboxes, axis=0)
-    bboxes = np.ascontiguousarray(bboxes)
-
-    size_kmeans_tick = time.time()
-    print("CollectComplete in %.2f s" % (size_kmeans_tick - collecting_tick))
-
-    box_size = bboxes.max(axis=1).reshape(-1, 1)
+    # box_size = bboxes.max(axis=1).reshape(-1, 1)
+    box_size = bboxes[:, 0].reshape(-1, 1)
     box_ratio = bboxes[:, 1] / bboxes[:, 0]
     box_ratio = box_ratio.reshape(-1, 1)
 
     kmeans.fit(box_size)
-    scale_kmean_tick = time.time()
-    sizes = kmeans.cluster_centers_
+    sizes = kmeans.cluster_centers_.flatten()
     groups = kmeans.labels_
-    print("SizeKMeanComplete in %.2f s" % (scale_kmean_tick - size_kmeans_tick))
     print(sizes)
     convert_index = sizes.argsort()
     print(convert_index)
 
     for idx in convert_index:
-        group_index = np.where(groups==idx)
-        kmeans.fit(box_ratio[group_index])
+        group_index = np.where(groups == idx)
+        group_ratio = box_ratio[group_index]
+        kmeans.fit(group_ratio)
         print(sizes[idx], ":")
-        print("\t", kmeans.cluster_centers_)
+        print(kmeans.cluster_centers_)
+        print('------------------------')
 
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
@@ -106,30 +107,36 @@ class AnchorKmeans(object):
 
             self.labels_ = cur_labels
 
-    # @staticmethod
-    # def iou(boxes, anchors):
-    #     """
-    #     Calculate the IOU between boxes and anchors.
-    #     :param boxes: 2-d array, shape(n, 2)
-    #     :param anchors: 2-d array, shape(k, 2)
-    #     :return: 2-d array, shape(n, k)
-    #     """
-    #     # Calculate the intersection,
-    #     # the new dimension are added to construct shape (n, 1) and shape (1, k),
-    #     # so we can get (n, k) shape result by numpy broadcast
-    #     w_min = np.minimum(boxes[:, 0, np.newaxis], anchors[np.newaxis, :, 0])
-    #     h_min = np.minimum(boxes[:, 1, np.newaxis], anchors[np.newaxis, :, 1])
-    #     inter = w_min * h_min
-    #
-    #     # Calculate the union
-    #     box_area = boxes[:, 0] * boxes[:, 1]
-    #     anchor_area = anchors[:, 0] * anchors[:, 1]
-    #     union = box_area[:, np.newaxis] + anchor_area[np.newaxis]
-    #
-    #     return inter / (union - inter)
-
     @staticmethod
     def iou(boxes, anchors):
+        """
+        Calculate the IOU between boxes and anchors.
+        :param boxes: 2-d array, shape(n, 2)
+        :param anchors: 2-d array, shape(k, 2)
+        :return: 2-d array, shape(n, k)
+        """
+        # Calculate the intersection,
+        # the new dimension are added to construct shape (n, 1) and shape (1, k),
+        # so we can get (n, k) shape result by numpy broadcast
+        w_min = np.minimum(boxes[:, 0, np.newaxis], anchors[np.newaxis, :, 0])
+        h_min = np.minimum(boxes[:, 1, np.newaxis], anchors[np.newaxis, :, 1])
+        inter = w_min * h_min
+
+        # Calculate the union
+        box_area = boxes[:, 0] * boxes[:, 1]
+        anchor_area = anchors[:, 0] * anchors[:, 1]
+        union = box_area[:, np.newaxis] + anchor_area[np.newaxis]
+
+        return inter / (union - inter)
+
+    def avg_iou(self):
+        """
+        Calculate the average IOU with closest anchor.
+        :return: None
+        """
+        return np.mean(self.ious_[np.arange(len(self.labels_)), self.labels_])
+    @staticmethod
+    def iou_tensor(boxes, anchors):
         boxes = boxes.unsqueeze(dim=1)
         w_min = torch.min(boxes[..., 0], anchors[..., 0])
         h_min = torch.min(boxes[..., 1], anchors[..., 1])
@@ -139,14 +146,13 @@ class AnchorKmeans(object):
         union = anchors_area + boxes_area
         return inter / (union - inter)
 
-    def avg_iou(self):
-        """
-        Calculate the average IOU with closest anchor.
-        :return: None
-        """
-        return np.mean(self.ious_[np.arange(len(self.labels_)), self.labels_])
 
 if __name__ == "__main__":
+    bboxes = np.load('crowdhuman_640.npy')
     cfg = get_default_cfg()
     cfg.merge_from_files('cfgs/yolox_ori')
-    cal_anchors(cfg)
+    cal_anchors(cfg, bboxes)
+
+    anchorkmean = AnchorKmeans(9)
+    anchorkmean.fit(bboxes)
+    print(anchorkmean.anchors_)

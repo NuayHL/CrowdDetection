@@ -32,8 +32,6 @@ class Anchor():
             #         anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
             #         anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
             #         start += lenAnchors
-
-
             for ratio, scale in zip(self.ratios[idx], self.scales[idx]):
                 anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
                 anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
