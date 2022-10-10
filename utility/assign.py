@@ -344,6 +344,79 @@ class SimOTA_PD(SimOTA):
 
         return assign_result, fin_gt, obj_weights
 
+class SimOTA_UsingIgnored(SimOTA):
+    def __init__(self, config, device):
+        super(SimOTA_UsingIgnored, self).__init__(config, device)
+        self.half_iou = IOU(ioutype='half_iou', gt_type='xywh', dt_type='xywh')
+    
+    def assign(self, gt, shift_dt):
+        output_size = (len(gt), self.num_anch)
+        assign_result = torch.zeros(output_size).to(self.device)
+        cls_weights = []
+        fin_gt = []
+
+        for ib in range(len(gt)):
+            dt_ib = shift_dt[ib].t()
+            gt_ib = torch.from_numpy(gt[ib]).to(self.device).float()
+            ignored = torch.eq(gt_ib[:, 4].int(), -1)  # find ignored input
+            gt_ib = gt_ib[~ignored]
+            gt_ignored_ib = gt_ib[ignored]
+
+            if len(gt_ib) == 0:  # deal with blank image
+                assign_result[ib] = torch.zeros(self.num_anch)
+                cls_weights.append(0)
+                fin_gt.append(gt_ib)
+                continue
+
+            in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
+                                                                               self.anchs,
+                                                                               self.stride)
+            shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
+            dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
+            dt_cls_ib_ = dt_ib[in_box_mask_ib, 5:]
+
+            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[0]
+            num_gt_ib = len(gt_ib)
+
+            iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
+            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
+
+            gt_cls_ib = gt_ib[:, 4].to(torch.int64)
+
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes) \
+                .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
+
+            with torch.cuda.amp.autocast(enabled=False):
+                dt_cls_ib_ = (dt_cls_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_()
+                              * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_())
+                cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
+
+            cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
+
+            matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
+
+            # negative: 0
+            # ignore: -1
+            # positive: index+1
+            assignment = in_box_mask_ib.float()
+            assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
+
+            if gt_ignored_ib.shape[0] > 0:
+                ignored_mask_ib = self.exclude_ingorned_proposal(dt_ib, gt_ignored_ib)
+                assignment[ignored_mask_ib] = -1
+                weight_ignored_mask_ib = ignored_mask_ib[in_box_mask_ib]
+                cls_ib_weight = cls_ib_weight[weight_ignored_mask_ib]
+
+            assign_result[ib] = assignment
+            cls_weights.append(cls_ib_weight)
+            fin_gt.append(gt_ib)
+
+        return assign_result, fin_gt, cls_weights
+
+    def exclude_ingorned_proposal(self, shift_box, ignored_gt):
+        ignored_weight = self.half_iou(shift_box[:, :4], ignored_gt).sum(dim=1)
+        ignored_mask = torch.gt(ignored_weight, 0.7)
+        return ignored_mask
 
 class MIP():
     def __init__(self, config, device):

@@ -16,7 +16,7 @@ class IOU(nn.Module):
         self.gt_type = gt_type
 
     @torch.no_grad()
-    def forward(self,dt,gt):
+    def forward(self, dt, gt):
         '''
         WARNING: the input must be bboxs, i.e. len(dt.shape)==2
         WARNING: the input must be torch.Tensor
@@ -28,8 +28,10 @@ class IOU(nn.Module):
 
         if self.ioutype == "iou":
             return self._iou(dt, gt)
+        if self.ioutype == "half_iou":
+            return self._iou_half(dt, gt)
         if self.ioutype == "giou":
-            return self._giou(dt,gt)
+            return self._giou(dt, gt)
         else:
             raise NotImplementedError("Unknown iouType")
 
@@ -72,6 +74,21 @@ class IOU(nn.Module):
         IoU = intersection / union
 
         return IoU
+
+    def _iou_half(self, a, b):
+        a = a.unsqueeze(dim=1)
+
+        w_int = torch.min(a[..., 2], b[:, 2]) - torch.max(a[..., 0], b[:, 0])
+        h_int = torch.min(a[..., 3], b[:, 3]) - torch.max(a[..., 1], b[:, 1])
+
+        w_int = torch.clamp(w_int, min=0)
+        h_int = torch.clamp(h_int, min=0)
+
+        intersection = w_int * h_int
+
+        union = (a[..., 2] - a[..., 0]) * (a[..., 3] - a[..., 1])
+        union = torch.clamp(union, min=1e-8)
+        return intersection / union
 
     def _giou(self, a, b):
         w_int = torch.min(torch.unsqueeze(a[:, 2], dim=1), b[:, 2]) - torch.max(torch.unsqueeze(a[:, 0], 1), b[:, 0])
