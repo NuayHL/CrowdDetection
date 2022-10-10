@@ -9,7 +9,10 @@ from utility.anchors import Anchor, generateAnchors
 def get_assign_method(config, device):
     type = config.model.assignment_type.lower()
     if type == 'simota':
-        return SimOTA(config, device)
+        if config.data.ignored_input:
+            return SimOTA_UsingIgnored(config, device)
+        else:
+            return SimOTA(config, device)
     elif type == 'pdsimota':
         return SimOTA_PD(config, device)
     elif type == 'default':
@@ -149,7 +152,6 @@ class SimOTA():
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
-        assert self.config.data.ignored_input == False
 
     def assign(self, gt, shift_dt):
         output_size = (len(gt), self.num_anch)
@@ -357,10 +359,10 @@ class SimOTA_UsingIgnored(SimOTA):
 
         for ib in range(len(gt)):
             dt_ib = shift_dt[ib].t()
-            gt_ib = torch.from_numpy(gt[ib]).to(self.device).float()
-            ignored = torch.eq(gt_ib[:, 4].int(), -1)  # find ignored input
-            gt_ib = gt_ib[~ignored]
-            gt_ignored_ib = gt_ib[ignored]
+            gt_raw_ib = torch.from_numpy(gt[ib]).to(self.device).float()
+            ignored = torch.eq(gt_raw_ib[:, 4].int(), -1)  # find ignored input
+            gt_ib = gt_raw_ib[~ignored]
+            gt_ignored_ib = gt_raw_ib[ignored]
 
             if len(gt_ib) == 0:  # deal with blank image
                 assign_result[ib] = torch.zeros(self.num_anch)
@@ -404,7 +406,7 @@ class SimOTA_UsingIgnored(SimOTA):
             if gt_ignored_ib.shape[0] > 0:
                 ignored_mask_ib = self.exclude_ingorned_proposal(dt_ib, gt_ignored_ib)
                 assignment[ignored_mask_ib] = -1
-                weight_ignored_mask_ib = ignored_mask_ib[in_box_mask_ib]
+                weight_ignored_mask_ib = ~ignored_mask_ib[in_box_mask_ib]
                 cls_ib_weight = cls_ib_weight[weight_ignored_mask_ib]
 
             assign_result[ib] = assignment
