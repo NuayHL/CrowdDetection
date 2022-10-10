@@ -69,6 +69,7 @@ class YoloX(BaseODModel):
                 assign_result, gt, weight = self.assignment.assign(sample['annss'])
 
         pos_mask = []
+        effective_mask = []
 
         cls_gt = []
         obj_gt = []
@@ -80,6 +81,9 @@ class YoloX(BaseODModel):
             assign_result_ib, gt_ib = assign_result[ib], gt[ib]
             pos_mask_ib = torch.gt(assign_result_ib, 0.5)
             pos_mask.append(pos_mask_ib)
+
+            effective_mask_ib = torch.gt(assign_result_ib, -0.5)
+            effective_mask.append(effective_mask_ib)
 
             label_pos_generate = (assign_result_ib[pos_mask_ib] - 1).long()
 
@@ -98,19 +102,21 @@ class YoloX(BaseODModel):
             obj_gt_ib = assign_result_ib.clamp(0, 1)
             if weight:
                 obj_gt_ib[pos_mask_ib] *= weight[ib]
+            obj_gt_ib = obj_gt_ib[effective_mask_ib]
             obj_gt.append(obj_gt_ib)
 
         pos_mask = torch.cat(pos_mask, dim=0)
+        effective_mask = torch.cat(effective_mask, dim=0)
         dt = {}
         gt = {}
-        dt['obj'] = obj_dt.view(-1)
-        gt['obj'] = torch.cat(obj_gt,dim=0)
-        dt['cls'] = cls_dt.permute(1,0,2).reshape(num_of_class,-1)[:, pos_mask]
-        gt['cls'] = torch.cat(cls_gt,dim=1)
-        dt['iou'] = shift_dt.permute(1,0,2).reshape(4,-1)[:, pos_mask]
+        dt['obj'] = obj_dt.view(-1)[effective_mask]
+        gt['obj'] = torch.cat(obj_gt, dim=0)
+        dt['cls'] = cls_dt.permute(1, 0, 2).reshape(num_of_class, -1)[:, pos_mask]
+        gt['cls'] = torch.cat(cls_gt, dim=1)
+        dt['iou'] = shift_dt.permute(1, 0, 2).reshape(4, -1)[:, pos_mask]
         gt['iou'] = torch.cat(shift_gt, dim=1)
         if self.use_l1:
-            dt['l1'] = ori_reg_dt.permute(1,0,2).reshape(4,-1)[:, pos_mask]
+            dt['l1'] = ori_reg_dt.permute(1, 0, 2).reshape(4, -1)[:, pos_mask]
             gt['l1'] = torch.cat(l1_gt, dim=1)
 
         return self.loss(dt, gt)
