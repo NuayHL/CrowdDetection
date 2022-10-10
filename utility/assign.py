@@ -149,6 +149,7 @@ class SimOTA():
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
+        assert self.config.data.ignored_input == False
 
     def assign(self, gt, shift_dt):
         output_size = (len(gt), self.num_anch)
