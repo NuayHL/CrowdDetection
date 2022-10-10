@@ -57,5 +57,5 @@ def coco_dt_to_txt(gt_file, dt_file, output_folder_name):
 
 if __name__ == '__main__':
     coco_dt_to_txt('CrowdHuman/annotation_val_coco_style.json',
-                   'running_log/YOLOX_pd/epoch_260_evalresult.json',
-                   'YOLOX_pd')
+                   'running_log/YOLOv3_free/epoch_275_evalresult.json',
+                   'YOLOv3_free')

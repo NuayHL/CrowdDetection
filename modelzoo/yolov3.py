@@ -3,7 +3,7 @@ import torch.nn as nn
 
 from modelzoo.basemodel import BaseODModel
 from utility.assign import AnchorAssign
-from utility.anchors import generateAnchors, result_parse
+from utility.anchors import generateAnchors, result_parse, Anchor
 from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression
 from utility.result import Result
@@ -30,8 +30,9 @@ class Yolov3(BaseODModel):
         self.anchors_per_grid = len(self.config.model.anchor_ratios) * len(self.config.model.anchor_scales)
         self.assignment = AnchorAssign(self.config, device)
         self.loss = GeneralLoss(self.config, device)
+        anchgen = Anchor(self.config)
         if self.config.model.use_anchor:
-            self.anchs = torch.from_numpy(generateAnchors(self.config, singleBatch=True)).float().to(device)
+            self.anchs = torch.from_numpy(anchgen.gen_Bbox(singleBatch=True)).float().to(device)
             self.output_number = self.anchs.shape[0]
         else:
             raise NotImplementedError('Yolov3 do not support anchor free')

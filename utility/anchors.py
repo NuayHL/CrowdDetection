@@ -69,7 +69,12 @@ class Anchor():
         for id, i in enumerate(self.fpnlevels):
             temp = self.config.data.input_width * self.config.data.input_height / (2 ** (2*i))
             if self.config.model.use_anchor:
-                temp *= len(self.scales) * len(self.ratios)
+                assert len(self.ratios) == len(self.fpnlevels)
+                assert len(self.scales) == len(self.fpnlevels)
+                anchors_per_grid = len(self.ratios[0])
+                for grid_indi in self.ratios + self.scales:
+                    assert len(grid_indi) == anchors_per_grid
+                temp *= anchors_per_grid
             num_in_each_level[id] *= temp
         stride = np.ones(num_in_each_level.sum())
         start_index = 0
