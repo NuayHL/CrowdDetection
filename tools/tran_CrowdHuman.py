@@ -96,7 +96,7 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
                 segmentation = [segmentation]
 
                 bbox_info={"id":bbox_id,"image_id":img["ID"],"category_id": categories_id, "segmentation": segmentation,
-                           "bbox":bbox["fbox"], "area":area, "iscrowd":0}
+                           "bbox":bbox["fbox"], "height":bbox['fbox'][3], "area":area, "iscrowd":0}
                 annotations.append(bbox_info)
             progressbar(float(id/num_imgs))
 

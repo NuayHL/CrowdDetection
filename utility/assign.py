@@ -197,7 +197,6 @@ class SimOTA():
             matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
 
             # negative: 0
-            # ignore: -1
             # positive: index+1
             assignment = in_box_mask_ib.float()
             assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
@@ -335,7 +334,6 @@ class SimOTA_PD(SimOTA):
             matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
 
             # negative: 0
-            # ignore: -1
             # positive: index+1
             assignment = in_box_mask_ib.float()
             assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1

@@ -2,8 +2,7 @@ import torch
 from modelzoo.neck.pafpn import PAFPN
 from modelzoo.neck.retinafpn import Retina_neck
 from modelzoo.neck.yolov3neck import Yolov3_neck
-from modelzoo.neck.abneck import ABNeck
-
+#from modelzoo.neck.abneck import ABNeck
 def build_neck(name):
     '''return neckClass, ratio on p3c'''
     if name == 'yolov3_neck':
@@ -12,8 +11,8 @@ def build_neck(name):
         return Retina_neck, 1.0
     elif name == 'pafpn':
         return PAFPN, 1.0
-    elif name == 'abneck':
-        return ABNeck, 1.0
+    # elif name == 'abneck':
+    #     return ABNeck, 1.0
 
     else:
         raise NotImplementedError('No neck named %s'%name)
