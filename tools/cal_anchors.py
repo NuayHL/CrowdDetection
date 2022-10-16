@@ -87,7 +87,7 @@ class AnchorKmeans():
             print('------------------------')
         for i in range(len(size)):
             group_index = np.where(label == idx[i])
-            print("index %d : %.2f" %(i, group_index.sum() / float(num_bbox)))
+            print("index %d : %.4f" % (i, len(group_index[0]) / float(num_bbox)))
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
 class _AnchorKmeans(object):
@@ -188,7 +188,7 @@ class _AnchorKmeans(object):
 if __name__ == "__main__":
     cfg = get_default_cfg()
     cfg.merge_from_files('cfgs/yolox_ori')
-    kmean = AnchorKmeans(cfg, 'crowdhuman_640.npy')
+    kmean = AnchorKmeans(cfg, 'crowdhuman_640.npy', 2)
     kmean.fit('size_wise')
     kmean.fit('single_wise')
 
