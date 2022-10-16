@@ -32,9 +32,9 @@ def main(args):
     plt.show()
 
     fpnlevels = len(cfg.model.fpnlevels)
-    anchor_per_grid = len(cfg.model.anchor_ratios) * len(cfg.model.anchor_scales) if cfg.model.use_anchor else 1
+    anchor_per_grid = len(cfg.model.anchor_ratios[0]) if cfg.model.use_anchor else 1
 
-    sum_result = stack_img(sum_result,(fpnlevels,anchor_per_grid))
+    sum_result = stack_img(sum_result,(fpnlevels, anchor_per_grid))
     bar = generate_hot_bar(1.0, 0.0, sum_result.shape[0])
     sum_result = np.concatenate([sum_result, bar], axis=1)
     fig, ax = plt.subplots()

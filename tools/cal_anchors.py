@@ -73,6 +73,8 @@ class AnchorKmeans():
         kmeans = _AnchorKmeans(len(fpnlevels) * self.anchors_per_grid)
         kmeans.fit(self.bbox_wh)
         anchors = kmeans.anchors_
+        label = kmeans.labels_
+        num_bbox = len(label)
         size = anchors[:, 0]
         anchors[:, 1] /= anchors[:, 0]
         idx = size.argsort()
@@ -83,7 +85,9 @@ class AnchorKmeans():
             level_anchor[:, 0] /= base_stride[i]
             print(level_anchor)
             print('------------------------')
-
+        for i in range(len(size)):
+            group_index = np.where(label == idx[i])
+            print("index %d : %.2f" %(i, group_index.sum() / float(num_bbox)))
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
 class _AnchorKmeans(object):
