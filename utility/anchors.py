@@ -84,6 +84,23 @@ class Anchor():
         if singleBatch: return stride
         return np.tile(stride, (self.config.training.batch_size, 1))
 
+    def get_anchors_per_grid(self):
+        return len(self.ratios[0]) if self.config.model.use_anchor else 1
+
+    def gen_block_indicator(self):
+        num_in_each_block = []
+        for level in self.fpnlevels:
+            num_in_this_block = self.config.data.input_width * self.config.data.input_height / (2 ** (2 * level))
+            for i in range(self.get_anchors_per_grid()):
+                num_in_each_block.append(num_in_this_block)
+        num_in_each_block = np.array(num_in_each_block, dtype=np.int)
+        block_indicator = np.zeros((num_in_each_block.sum(), 1))
+        starts = 0
+        for i, num_in_block in enumerate(num_in_each_block):
+            block_indicator[starts: starts+num_in_block, 0] = i
+            starts += num_in_block
+        return block_indicator
+
 def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''
     return: batch_size X total_anchor_numbers X 4

@@ -72,6 +72,7 @@ class AnchorKmeans():
         base_stride = [2 ** (x + 2) for x in fpnlevels]
         kmeans = _AnchorKmeans(len(fpnlevels) * self.anchors_per_grid)
         kmeans.fit(self.bbox_wh)
+        self.anchor = kmeans.anchors_
         anchors = kmeans.anchors_
         label = kmeans.labels_
         num_bbox = len(label)
@@ -88,6 +89,17 @@ class AnchorKmeans():
         for i in range(len(size)):
             group_index = np.where(label == idx[i])
             print("index %d : %.4f" % (i, len(group_index[0]) / float(num_bbox)))
+        return kmeans
+
+    def __call__(self, box_whs):
+        iou = _AnchorKmeans.iou
+        anchors = self.anchor
+        size = anchors[:, 0]
+        idx = size.argsort()
+        anchors = anchors[idx]
+        iou_value = iou(box_whs, anchors)
+        indexs = np.argmax(iou_value, axis=1)
+        return indexs
 
 # Copy from https://github.com/ybcc2015/DeepLearning-Utils/blob/master/Anchor-Kmeans/kmeans.py
 class _AnchorKmeans(object):
@@ -188,7 +200,24 @@ class _AnchorKmeans(object):
 if __name__ == "__main__":
     cfg = get_default_cfg()
     cfg.merge_from_files('cfgs/yolox_ori')
-    kmean = AnchorKmeans(cfg, 'crowdhuman_640.npy', 2)
-    kmean.fit('size_wise')
+    kmean = AnchorKmeans(cfg, 'crowdhuman_640.npy', 3)
+    # kmean.fit('size_wise')
     kmean.fit('single_wise')
+
+    train_wh = np.load('crowdhuman_val_640.npy')
+    label = kmean(train_wh)
+
+    print('-------------------------------------------------------------------')
+
+    for i in range(len(kmean.anchor)):
+        group_index = np.where(label == i)
+        print("index %d : %.4f" % (i, len(group_index[0]) / float(len(label))))
+
+
+
+
+
+
+
+
 

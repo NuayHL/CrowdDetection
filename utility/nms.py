@@ -43,6 +43,30 @@ class NMS():
             output[ib] = det[kept_box_mask]
         return output
 
+    def cal_block_output(self, dets, indicator, class_indepent=False):
+        '''Input: dets.shape = [B, n, xywh+o+c] reshaped raw output of the model'''
+        num_classes = dets.shape[2] - 5  # number of classes
+        batch_size = dets.shape[0]
+        pred_candidates = dets[..., 4] > self.conf_thres  # candidates
+        output_indicator = indicator[pred_candidates]
+        output = [None] * batch_size
+        for ib, det in enumerate(dets):
+            det = det[pred_candidates[ib]]
+            det[:, 5:] *= det[:, 4:5]
+            conf, categories = det[:, 5:].max(dim=1, keepdim=True)
+            class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
+            box = xywh2xyxy(det[:, :4]) + class_offset
+            det = torch.cat([box, conf, categories], dim=1)
+            if det.shape[0] == 0:
+                continue
+            kept_box_mask = self._nms(det[:, :5])
+            output[ib] = [kept_box_mask]
+
+        real_output_indicator = [single_indicator[pred_candidate][kept_box]
+                                 for single_indicator, kept_box, pred_candidate
+                                 in zip(indicator, output, pred_candidates)]
+        return output_indicator, real_output_indicator
+
     def _nms(self, dets):
         '''det: [n,5], 5: x1y1x2y2 score, return kept indices. Warning: n must > 0'''
         eps = 1e-8

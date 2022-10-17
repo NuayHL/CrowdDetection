@@ -15,7 +15,7 @@ def main(args):
     model = builder.build()
     model.set(args, 0)
     eval = Eval(cfg, args, model, 0)
-    eval.eval(force_eval=args.force_eval)
+    eval.eval()
 
 if __name__ == "__main__":
     args = get_eval_args_parser().parse_args()

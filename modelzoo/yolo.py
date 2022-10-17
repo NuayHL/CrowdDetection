@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.cuda.amp as amp
@@ -135,6 +136,55 @@ class YoloX(BaseODModel):
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
             fin_result.append(Result(result, id, ori_shape, self.input_shape))
         return fin_result
+
+    def rec_block_output(self, sample):
+        if not hasattr(self, 'block_indicator'):
+            numofblock = (len(self.config.model.fpnlevels) * self.anch_gen.get_anchors_per_grid())
+            self.block_indicator = torch.from_numpy(self.anch_gen.gen_block_indicator()).to(self.device).int()
+            self.block_output_rec = torch.zeros(numofblock).to(self.device).long()
+            self.block_real_output_rec = torch.zeros(numofblock).to(self.device).long()
+
+        dt = self.core(sample['imgs'])
+
+        block_inidicator = torch.tile(self.block_indicator, (dt.shape[0], 1, 1))
+
+        # restore the predicting bboxes via pre-defined anchors
+        dt[:, :4, :] = self.get_shift_bbox(dt[:, :4, :])
+        dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
+
+        dt = torch.permute(dt, (0, 2, 1))
+
+        output_indicator, real_output_indicator = self.nms.cal_block_output(dt, block_inidicator)
+
+        block_index, block_counts = output_indicator.unique(return_counts=True)
+        for block, counts in zip(block_index, block_counts):
+            self.block_output_rec[block] += counts
+
+        for real_output in real_output_indicator:
+            block_index, block_counts = real_output.unique(return_counts=True)
+            for block, counts in zip(block_index, block_counts):
+                self.block_real_output_rec[block] += counts
+
+        return None
+
+    def get_stats(self):
+        if hasattr(self, 'block_output_rec') and hasattr(self, 'block_real_output_rec'):
+            input_count = self.block_output_rec.tolist()
+            all_input_count = self.block_output_rec.sum().cpu().item()
+            used_count = self.block_real_output_rec.tolist()
+            all_used_count = self.block_real_output_rec.sum().cpu().item()
+            all_count_ = torch.clamp(self.block_output_rec, min=1)
+            effect_ratio = self.block_real_output_rec.float() / all_count_.float()
+            effect_ratio_ = effect_ratio.tolist()
+            all_effect_ratio = all_used_count / float(all_input_count)
+            contribute_ratio = [block_used/float(all_used_count) for block_used in used_count]
+            for idx, (ac, uc, er, cr) in enumerate(zip(input_count, used_count, effect_ratio_, contribute_ratio)):
+                print('Block %d [output: %10d | used: %8d | effective ratio: %.4f | contribute ratio: %.4f]'
+                      % ((idx+1), ac, uc, er, cr))
+            print('  All   [output: %10d | used: %8d | effective ratio: %.4f ]'
+                  % (all_input_count, all_used_count, all_effect_ratio))
+        else:
+            pass
 
     def get_shift_bbox(self, ori_box:torch.Tensor): # return xywh Bbox
         shift_box = ori_box.clone().to(torch.float32)

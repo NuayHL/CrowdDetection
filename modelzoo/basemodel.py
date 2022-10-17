@@ -36,6 +36,10 @@ class BaseODModel(nn.Module):
         with open('debug.txt', 'a') as f:
             print(*args, **kwargs, file=f)
 
+    def get_stats(self):
+        """Used after eval or infer, overwrite it if you need"""
+        pass
+
     def _test_hot_map(self, sample):
         dt = self.core(sample['imgs'])
         hot_map = self.sigmoid(dt[:, 4, :])
