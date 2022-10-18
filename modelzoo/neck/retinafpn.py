@@ -1,9 +1,13 @@
 from torch import nn as nn
+from modelzoo.neck.build import NeckRegister
 
-
+@NeckRegister.register
+@NeckRegister.register('retina_neck')
 class Retina_neck(nn.Module):
     def __init__(self, p3c = 256):
         super(Retina_neck, self).__init__()
+
+        self.p3c_r = 1.0
 
         # upsample C5 to get P5 from the FPN paper
         self.P5_1 = nn.Conv2d(p3c*4, p3c, kernel_size=1, stride=1, padding=0)

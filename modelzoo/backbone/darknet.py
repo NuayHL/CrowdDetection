@@ -1,12 +1,14 @@
 from torch import nn as nn
 
 from modelzoo.common import DarkResidualBlock, conv_nobias_bn_lrelu, make_layers
+from modelzoo.backbone.build import BackboneRegister
 
-
+@BackboneRegister.register
+@BackboneRegister.register('darknet53')
 class Darknet53(nn.Module):
     def __init__(self, res_block=DarkResidualBlock):
         super(Darknet53, self).__init__()
-
+        Darknet53.p3c = 256
         self.conv1 = conv_nobias_bn_lrelu(3, 32)
         self.conv2 = conv_nobias_bn_lrelu(32, 64, stride=2)
         self.residual_block1 = make_layers(1, res_block, 64)

@@ -3,7 +3,10 @@ from torch import nn as nn
 
 from modelzoo.common import DWConv, BaseConv
 
+from modelzoo.head.build import HeadRegister
 
+@HeadRegister.register
+@HeadRegister.register('yolox_head')
 class YOLOX_head(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3_channels=256, depthwise=False, act='silu'):
         super(YOLOX_head, self).__init__()
@@ -75,6 +78,8 @@ class YOLOX_head(nn.Module):
         output = torch.cat(output, dim=2)
         return output
 
+@HeadRegister.register
+@HeadRegister.register('yolox_head_csp')
 class YOLOX_head_csp(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3_channels=256, depthwise=False, act='silu'):
         super(YOLOX_head_csp, self).__init__()

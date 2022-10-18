@@ -3,11 +3,14 @@ from torch import nn as nn
 from torch.nn.functional import interpolate
 
 from modelzoo.common import conv_nobias_bn_lrelu
+from modelzoo.neck.build import NeckRegister
 
-
+@NeckRegister.register
+@NeckRegister.register('yolov3_neck')
 class Yolov3_neck(nn.Module):
     def __init__(self, p3_channels=256):
         super(Yolov3_neck, self).__init__()
+        self.p3c_r = 0.5
         p3c = p3_channels
         self.p5_out = self.yolo_block(p3c*2)
         self.p4_out = self.yolo_block(p3c, p3c*3)

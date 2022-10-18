@@ -3,7 +3,10 @@ from torch import nn as nn
 
 from modelzoo.common import conv_nobias_bn_lrelu
 
+from modelzoo.head.build import HeadRegister
 
+@HeadRegister.register
+@HeadRegister.register('yolov3_head')
 class Yolov3_head(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3_channels=128):
         super(Yolov3_head, self).__init__()

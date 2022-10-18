@@ -1,7 +1,10 @@
 import torch
 from torch import nn as nn
 
+from modelzoo.head.build import HeadRegister
 
+@HeadRegister.register
+@HeadRegister.register('retina_head')
 class Retina_head(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3c=256):
         super(Retina_head, self).__init__()

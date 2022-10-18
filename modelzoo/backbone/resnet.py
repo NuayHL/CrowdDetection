@@ -1,6 +1,8 @@
 from torch import nn as nn
 
 from modelzoo.common import BasicBlock, Bottleneck
+from modelzoo.backbone.build import BackboneRegister
+
 # Part from:
 #     https://github.com/yhenon/pytorch-retinanet/blob/master/retinanet/utils.py
 
@@ -47,21 +49,32 @@ class ResNet(nn.Module):
         return p3, p4, p5
 
 
+@BackboneRegister.register
 def resnet18():
-    return ResNet(BasicBlock, [2, 2, 2, 2])
+    model = ResNet(BasicBlock, [2, 2, 2, 2])
+    model.p3c = 128
+    return model
 
-
+@BackboneRegister.register
 def resnet34():
-    return ResNet(BasicBlock, [3, 4, 6, 3])
+    model = ResNet(BasicBlock, [3, 4, 6, 3])
+    model.p3c = 128
+    return model
 
-
+@BackboneRegister.register
 def resnet50():
-    return ResNet(Bottleneck, [3, 4, 6, 3])
+    model = ResNet(Bottleneck, [3, 4, 6, 3])
+    model.p3c = 512
+    return model
 
-
+@BackboneRegister.register
 def resnet101():
-    return ResNet(Bottleneck, [3, 4, 23, 3])
+    model = ResNet(Bottleneck, [3, 4, 23, 3])
+    model.p3c = 512
+    return model
 
-
+@BackboneRegister.register
 def resnet152():
-    return ResNet(Bottleneck, [3, 8, 36, 3])
+    model = ResNet(Bottleneck, [3, 8, 36, 3])
+    model.p3c = 512
+    return model

@@ -1,9 +1,12 @@
 from torch import nn as nn
 
+from modelzoo.backbone.build import BackboneRegister
 from modelzoo.common import DWConv, BaseConv, Focus, CSPLayer, SPPBottleneck
 from modelzoo.attention import CBAMBlock
 
 
+@BackboneRegister.register
+@BackboneRegister.register('cspdarknet')
 class CSPDarknet(nn.Module):
     def __init__(self, depth=1.0, width=1.0, depthwise=False, act='silu'):
         super(CSPDarknet, self).__init__()
@@ -57,6 +60,8 @@ class CSPDarknet(nn.Module):
         p5 = self.dark5(p4)
         return p3, p4, p5
 
+@BackboneRegister.register
+@BackboneRegister.register('cspdarknet_cbam')
 class CSPDarknet_CBAM(nn.Module):
     """Adding CBAMBlock in each dark layer"""
     def __init__(self, depth=1.0, width=1.0, depthwise=False, act='silu'):

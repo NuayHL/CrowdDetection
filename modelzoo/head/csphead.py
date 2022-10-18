@@ -3,7 +3,10 @@ import torch.nn as nn
 
 from modelzoo.common import DWConv, BaseConv
 
+from modelzoo.head.build import HeadRegister
 
+@HeadRegister.register
+@HeadRegister.register('pdhead')
 class PDHead(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3c, width=1.0, act='silu'):
         super(PDHead, self).__init__()
@@ -57,6 +60,8 @@ class PDHead(nn.Module):
         output = torch.cat(output, dim=2)
         return output
 
+@HeadRegister.register
+@HeadRegister.register('pdhead_csp')
 class PDHead_csp(nn.Module):
     def __init__(self, classes, anchors_per_grid, p3c, width=1.0, act='silu'):
         super(PDHead_csp, self).__init__()

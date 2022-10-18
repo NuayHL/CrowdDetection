@@ -1,6 +1,8 @@
 import math
 from collections import defaultdict
 import torch.nn as nn
+
+import modelzoo.backbone.build
 import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
@@ -10,43 +12,55 @@ from modelzoo.yolo import YoloX
 from modelzoo.retinanet import RetinaNet
 from modelzoo.pdyolo import PDYOLO
 
-class BuildModel():
+class BuildModel:
     def __init__(self, config):
         self.config = config
         self.model_name = config.model.name.lower()
+
     def build(self):
         print("Building Models: %s"%self.model_name)
         main_model = self.get_model_structure()
         backbone_name = self.config.model.backbone.lower()
         neck_name = self.config.model.neck.lower()
         head_name = self.config.model.head.lower()
-        model_backbone, p3c = backbone.build_backbone(backbone_name)
-        model_neck, p3c_r = neck.build_neck(neck_name)
+        model_backbone = backbone.build_backbone(backbone_name)
+        model_neck= neck.build_neck(neck_name)
         model_head = head.build_head(head_name)
 
         main_model_dict = {}
         backbone_dict = {}
         neck_dict = {}
         head_dict = {}
-        if self.config.model.structure_extra != None:
-            sdict = defaultdict(dict,self.config.model.structure_extra[0])
+        if self.config.model.structure_extra is not None:
+            sdict = defaultdict(dict, self.config.model.structure_extra[0])
             main_model_dict = sdict['model']
             backbone_dict = sdict['backbone']
             neck_dict = sdict['neck']
             head_dict = sdict['head']
-
-        if 'cspdarknet' in backbone_name:
-            p3c = int(64 * backbone_dict['width']) * 4
 
         classes = self.config.data.numofclasses
         anchors = 1
         if self.config.model.use_anchor:
             anchors = len(self.config.model.anchor_ratios[0])
 
+        backbone_module = model_backbone(**backbone_dict)
+        try:
+            backbone_p3c = backbone_module.p3c
+        except:
+            print('Please define p3c in your backbone module indicating the number of output channels of layer3')
+
+        neck_module = model_neck(backbone_p3c, **neck_dict)
+        try:
+            neck_p3c_r = neck_module.p3c_r
+        except:
+            print('Please define p3c_r in your neck module indicating the ratio between the number of output and input'
+                  ' channels of layer3')
+
+        # noinspection PyArgumentList
         model = main_model(self.config,
-                           backbone=model_backbone(**backbone_dict),
-                           neck=model_neck(p3c, **neck_dict),
-                           head=model_head(classes, anchors, int(p3c * p3c_r), **head_dict),
+                           backbone=backbone_module,
+                           neck=neck_module,
+                           head=model_head(classes, anchors, int(backbone_p3c * neck_p3c_r), **head_dict),
                            **main_model_dict)
 
         # weight init
@@ -104,10 +118,10 @@ if __name__ == '__main__':
     import torch
     from config import get_default_cfg
     from odcore.config import merge_from_files
-    config = get_default_cfg()
-    merge_from_files(config, 'cfgs/yolox')
-    builder = BuildModel(config)
-    model = builder.build().cuda()
+    cfg = get_default_cfg()
+    merge_from_files(cfg, 'cfgs/yolox')
+    builder = BuildModel(cfg)
+    model_test = builder.build().cuda()
     input = torch.rand((1,3,640,640)).cuda()
-    output = model.core(input)
+    output = model_test.core(input)
     print(output.shape)

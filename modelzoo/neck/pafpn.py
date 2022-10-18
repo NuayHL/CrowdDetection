@@ -2,11 +2,14 @@ import torch
 from torch import nn as nn
 
 from modelzoo.common import DWConv, BaseConv, CSPLayer
+from modelzoo.neck.build import NeckRegister
 
-
+@NeckRegister.register
+@NeckRegister.register('pafpn')
 class PAFPN(nn.Module):
     def __init__(self, p3c=128, depth=1.0, depthwise=False, act='silu'):
         super(PAFPN, self).__init__()
+        self.p3c_r = 1.0
         self.in_channels = [int(p3c), int(p3c * 2), int(p3c * 4)]
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
         Conv = DWConv if depthwise else BaseConv
