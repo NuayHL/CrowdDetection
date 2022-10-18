@@ -30,14 +30,10 @@ class HotMapHooker:
         hot_map_list = result_parse(cfg, hot_map, restore_size=True)
 
         sum_result = []
-        fig, ax = plt.subplots(3, 4)
         for id, level in enumerate(hot_map_list):
             for il, fm in enumerate(level):
                 fm = fm.numpy()
                 sum_result.append(fm)
-                ax[id][il].imshow(fm)
-                ax[id][il].axis('off')
-        plt.show()
 
         fpnlevels = len(cfg.model.fpnlevels)
         anchor_per_grid = len(cfg.model.anchor_ratios[0]) if cfg.model.use_anchor else 1
@@ -58,10 +54,17 @@ class HotMapHooker:
         out_layer = [layer.squeeze(0).permute((1, 2, 0)).detach().cpu().numpy() for layer in output]
 
         in_layer = [HotMapHooker.return_hot_map_from_feature(level, add_bar=False) for level in in_layer]
+        out_layer = [HotMapHooker.return_hot_map_from_feature(level, add_bar=False) for level in out_layer]
 
-        fig, ax = plt.subplots()
-        ax.imshow(in_layer[2])
-        ax.axis('off')
+        HotMapHooker.data['in_neck_img_list'] = in_layer
+        HotMapHooker.data['out_neck_img_list'] = out_layer
+
+        fig, ax = plt.subplots(1, 2)
+        ax[0].imshow(in_layer[0])
+        ax[0].axis('off')
+        ax[1].imshow(out_layer[0])
+        ax[1].axis('off')
+
         plt.show()
 
     @staticmethod
