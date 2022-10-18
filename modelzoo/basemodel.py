@@ -39,11 +39,3 @@ class BaseODModel(nn.Module):
     def get_stats(self):
         """Used after eval or infer, overwrite it if you need"""
         pass
-
-    def _test_hot_map(self, sample):
-        dt = self.core(sample['imgs'])
-        hot_map = self.sigmoid(dt[:, 4, :])
-        assert len(hot_map.shape) == 2, "please using single batch input"
-        hot_map = hot_map.t().detach().cpu()
-        hot_map_list = result_parse(self.config, hot_map, restore_size=True)
-        return hot_map_list

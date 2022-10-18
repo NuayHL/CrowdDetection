@@ -9,11 +9,16 @@ from odcore.utils.visualization import LossLog
 def get_args_parser(add_help=True):
     parser = argparse.ArgumentParser(description='Args for loss drawing', add_help=add_help)
     parser.add_argument('--loss-log', default='', type=str, help='_loss.log file')
+    parser.add_argument('-exp', default='', type=str, help='experiment name')
     return parser
 
 
 def main(args):
-    log = LossLog(args.loss_log)
+    if args.loss_log != '':
+        loss_log = args.loss_log
+    else:
+        loss_log = 'running_log/%s/%s_loss.log' % (args.exp, args.exp)
+    log = LossLog(loss_log)
     log.draw_loss()
     log.draw_sum_loss()
     log.draw_epoch_loss()
