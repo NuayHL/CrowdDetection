@@ -53,7 +53,7 @@ class YoloX(BaseODModel):
         assert True in ['iou' in loss for loss in self.config.loss.reg_type], 'Please adding iou-type loss'
         self.loss = GeneralLoss_fix(self.config, device, reduction='mean')
 
-    def training_loss(self,sample):
+    def training_loss(self, sample):
         dt = self.core(sample['imgs']) #[B, 4+1+cls, n_anchors_all]
         num_of_class = dt.shape[1]-5
         cls_dt = dt[:, 5:, :].clone()  #[B, cls, n_anchors_all]

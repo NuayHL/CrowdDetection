@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 from modelzoo.basemodel import BaseODModel
-from utility.assign import AnchorAssign
+from utility.assign.defaultassign import AnchorAssign
 from utility.anchors import generateAnchors, result_parse, Anchor
 from utility.loss import GeneralLoss, updata_loss_dict
 from utility.nms import non_max_suppression

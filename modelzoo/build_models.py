@@ -15,14 +15,14 @@ from modelzoo.pdyolo import PDYOLO
 class BuildModel:
     def __init__(self, config):
         self.config = config
-        self.model_name = config.model.name.lower()
+        self.model_name = config.model.name
 
     def build(self):
         print("Building Models: %s"%self.model_name)
         main_model = self.get_model_structure()
-        backbone_name = self.config.model.backbone.lower()
-        neck_name = self.config.model.neck.lower()
-        head_name = self.config.model.head.lower()
+        backbone_name = self.config.model.backbone
+        neck_name = self.config.model.neck
+        head_name = self.config.model.head
         model_backbone = backbone.build_backbone(backbone_name)
         model_neck= neck.build_neck(neck_name)
         model_head = head.build_head(head_name)
