@@ -87,6 +87,14 @@ class Anchor():
     def get_anchors_per_grid(self):
         return len(self.ratios[0]) if self.config.model.use_anchor else 1
 
+    def get_num_in_each_level(self):
+        num_list = []
+        for level in self.fpnlevels:
+            giw = int(self.config.data.input_width / (2 ** level))
+            gih = int(self.config.data.input_height / (2 ** level))
+            num_list.append(giw * gih * self.get_anchors_per_grid())
+        return num_list
+
     def gen_block_indicator(self):
         num_in_each_block = []
         for level in self.fpnlevels:

@@ -7,7 +7,7 @@ from utility.anchors import Anchor
 from utility.assign.build import AssignRegister
 
 
-# This code is based on https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
+# This code is modified from https://github.com/Megvii-BaseDetection/YOLOX/blob/main/yolox/models/yolo_head.py
 @AssignRegister.register
 @AssignRegister.register('simOTA')
 def simota(config, device):
@@ -17,7 +17,7 @@ def simota(config, device):
         return SimOTA(config, device)
 
 
-class SimOTA():
+class SimOTA:
     def __init__(self, config, device):
         self.config = config
         self.device = device

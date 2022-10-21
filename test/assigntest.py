@@ -2,6 +2,7 @@ import os
 import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path, '../odcore'))
+os.chdir(os.path.join(path, '..'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
@@ -11,15 +12,25 @@ from odcore.utils.visualization import assign_hot_map, stack_img, generate_hot_b
 from odcore.data.dataset import CocoDataset
 from modelzoo.build_models import BuildModel
 from config import get_default_cfg
-from utility.assign import AnchorAssign, SimOTA
+from utility.assign.defaultassign import AnchorAssign
+from utility.assign.simota import SimOTA
+from utility.assign.atss import ATSS
 from utility.anchors import Anchor, result_parse
+
+import matplotlib
+matplotlib.use('TkAgg')
 
 device = 0
 
 cfg = get_default_cfg()
-cfg.merge_from_files('../cfgs/yolox_free_s2')
+cfg.merge_from_files('cfgs/yolox_free_s2')
 
-dataset = CocoDataset('../CrowdHuman/annotation_train_coco_style.json','../CrowdHuman/Images_train',cfg.data, 'val')
+cfg_anchor = get_default_cfg()
+cfg_anchor.merge_from_files('cfgs/yolox_anchor3')
+assigner_norm = ATSS(cfg_anchor, device)
+
+
+dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json', 'CrowdHuman/Images_train', cfg.data, 'val')
 sample = dataset[200]
 img = sample['img']
 gt = sample['anns']
@@ -28,16 +39,12 @@ samples = CocoDataset.OD_default_collater([sample])
 
 builder = BuildModel(cfg)
 model = builder.build()
-
 assigner_ota = SimOTA(cfg, device)
-assigner_norm = AnchorAssign(cfg, device)
 anchorgen = Anchor(cfg)
-
 model.set(None, device)
 model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
-
-para = torch.load('../running_log/YOLOX_640_OTA_free/best_epoch.pth')
+para = torch.load('running_log/YOLOX_640_OTA_free/best_epoch.pth')
 model.load_state_dict(para['model'])
 dt = model.core(samples['imgs'])
 if cfg.model.use_anchor:
@@ -47,7 +54,6 @@ else:
     anchs = torch.from_numpy(anchorgen.gen_points(singleBatch=True)).float().to(device)
     single_stride = torch.from_numpy(anchorgen.gen_stride(singleBatch=True)).float().to(device).unsqueeze(1)
     stride = torch.cat([single_stride, single_stride], dim=1)
-
 def get_shift_bbox(ori_box: torch.Tensor):  # return xywh Bbox
     shift_box = ori_box.clone().to(torch.float32)
     if cfg.model.use_anchor:
@@ -62,11 +68,8 @@ def get_shift_bbox(ori_box: torch.Tensor):  # return xywh Bbox
     return shift_box
 
 dt[:, :4, :] = get_shift_bbox(dt[:, :4, :])
-
 mask_ota, _, _ = assigner_ota.assign(samples['annss'], dt)
-
 mask_ota = mask_ota[0].cpu()
-
 if cfg.model.use_anchor:
     anchs = anchs.cpu().numpy()
 else:
@@ -82,14 +85,10 @@ level_mask = result_parse(cfg, clampled_mask, restore_size=True)
 
 sum_result = []
 
-fig, ax = plt.subplots(3,4)
 for id, level in enumerate(level_mask):
     for il, fm in enumerate(level):
         fm = fm.numpy()
         sum_result.append(fm)
-        ax[id][il].imshow(fm)
-        ax[id][il].axis('off')
-plt.show()
 
 fpnlevels = len(cfg.model.fpnlevels)
 anchor_per_grid = len(cfg.model.anchor_ratios) * len(cfg.model.anchor_scales) if cfg.model.use_anchor else 1
@@ -102,12 +101,13 @@ fig, ax = plt.subplots()
 ax.imshow(sum_result)
 ax.axis('off')
 plt.show()
-
 assign_hot_map(anchs, mask_ota, (640,640), img, gt)
 
-# mask_norm, _ = assigner_norm.assign(samples['annss'])
-# mask_norm = mask_norm[0]
-# assign_hot_map(anchs, mask_norm, (640,640), img, gt)
+# ----------------------------------------------------------------------------------------------------------------------
+mask_norm, _, _ = assigner_norm.assign(samples['annss'])
+mask_norm = mask_norm[0]
+print(mask_norm.sum())
+assign_hot_map(anchs, mask_norm, (640,640), img, gt)
 
 
 

@@ -9,7 +9,7 @@ from config import get_default_cfg
 
 
 cfg = get_default_cfg()
-cfg.merge_from_files('cfgs/yolox_pd_csp')
+cfg.merge_from_files('cfgs/test_yolox_s2_default')
 
 builder = BuildModel(cfg)
 model = builder.build()
@@ -23,5 +23,4 @@ print(result.shape)
 # dataset = CocoDataset('CrowdHuman/annotation_val_coco_style_checked.json', 'CrowdHuman/Images_val', cfg.data, 'val')
 # sample = dataset[299]
 # show_bbox(sample['img'], sample['anns'])
-
 

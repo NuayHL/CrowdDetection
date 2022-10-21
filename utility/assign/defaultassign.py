@@ -54,6 +54,7 @@ class AnchorAssign():
             # ignore: -1
             # positive: index+1
             print(iou_max_value.dtype)
+            print((iou_max_idx + 2.0).float().dtype)
             iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(), iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou - 0.1, 1.0, iou_max_value)
             iou_max_value = torch.where(iou_max_value < self.threshold_iou, 0., iou_max_value)
