@@ -111,7 +111,6 @@ anchs = anchor_gen.gen_Bbox(singleBatch=True)
 anchs = torch.from_numpy(anchs).to(device)
 mask_norm, _, _ = assigner_norm.assign(samples['annss'])
 mask_norm = mask_norm[0]
-print(mask_norm.sum())
 assign_hot_map(anchs, mask_norm, (640,640), img, gt)
 
 

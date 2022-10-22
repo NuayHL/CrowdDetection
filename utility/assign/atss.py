@@ -63,7 +63,7 @@ class ATSS:
                 dt_cls_ib = dt_ib[:, 5:]
                 cls_cost = torch.sigmoid(dt_cls_ib[:, gt_label_ib])
                 overlaps = self.iou_calculator(self.anchs, gt_ib)
-                assert cls_cost.shape == overlaps.shape #---------------------------------------------------------------
+                assert cls_cost.shape == overlaps.shape
                 overlaps = cls_cost**(1 - self.alpha) * overlaps**self.alpha
 
             # assign 0 by default
@@ -107,23 +107,29 @@ class ATSS:
             is_pos = candidate_overlaps >= overlaps_thr_per_gt[None, :]
 
             # limit the positive sample's center in gt
-            # candidate_offset = torch.arange(gt_len).to(self.device)
-            # candidate_offset *= self.num_anch
-            # candidate_offset = candidate_offset.unsqueeze(dim=0).expand(self.topk, -1)
-            # candidate_idxs += candidate_offset
+            candidate_offset = torch.arange(gt_ib_len).to(self.device)
+            candidate_offset *= self.num_anch
+            candidate_offset = candidate_offset.unsqueeze(dim=0).expand(self.topk * len(self.num_in_each_level), -1)
+            candidate_idxs += candidate_offset
 
-            for gt_idx in range(gt_ib_len):
-                candidate_idxs[:, gt_idx] += gt_idx * self.num_anch
-            ep_bboxes_cx = self.anch_poins[:, 0:1].t().expand(gt_ib_len, self.num_anch).contiguous().view(-1)
-            ep_bboxes_cy = self.anch_poins[:, 1:2].t().expand(gt_ib_len, self.num_anch).contiguous().view(-1)
+            # for gt_idx in range(gt_ib_len):
+            #     candidate_idxs[:, gt_idx] += gt_idx * self.num_anch
+            ep_bboxes_cx = self.anch_poins[:, 0].repeat(gt_ib_len)
+            ep_bboxes_cy = self.anch_poins[:, 1].repeat(gt_ib_len)
             candidate_idxs = candidate_idxs.view(-1)
+
+            gt_ib_x1y1x2y2 = gt_ib.clone()
+            gt_ib_x1y1x2y2[:, 0] -= gt_ib[:, 2] * 0.5
+            gt_ib_x1y1x2y2[:, 2] += gt_ib[:, 0]
+            gt_ib_x1y1x2y2[:, 1] -= gt_ib[:, 3] * 0.5
+            gt_ib_x1y1x2y2[:, 3] += gt_ib[:, 1]
 
             # calculate the left, top, right, bottom distance between positive
             # bbox center and gt side
-            l_ = ep_bboxes_cx[candidate_idxs].view(-1, gt_ib_len) - gt_ib[:, 0]
-            t_ = ep_bboxes_cy[candidate_idxs].view(-1, gt_ib_len) - gt_ib[:, 1]
-            r_ = gt_ib[:, 2] - ep_bboxes_cx[candidate_idxs].view(-1, gt_ib_len)
-            b_ = gt_ib[:, 3] - ep_bboxes_cy[candidate_idxs].view(-1, gt_ib_len)
+            l_ = ep_bboxes_cx[candidate_idxs].view(-1, gt_ib_len) - gt_ib_x1y1x2y2[:, 0]
+            t_ = ep_bboxes_cy[candidate_idxs].view(-1, gt_ib_len) - gt_ib_x1y1x2y2[:, 1]
+            r_ = gt_ib_x1y1x2y2[:, 2] - ep_bboxes_cx[candidate_idxs].view(-1, gt_ib_len)
+            b_ = gt_ib_x1y1x2y2[:, 3] - ep_bboxes_cy[candidate_idxs].view(-1, gt_ib_len)
             is_in_gts = torch.stack([l_, t_, r_, b_], dim=1).min(dim=1)[0] > 0.01
 
             is_pos = is_pos & is_in_gts
