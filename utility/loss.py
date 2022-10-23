@@ -69,11 +69,14 @@ class GeneralLoss_fix():
             elif method in ['l1']:
                 l1_flag = True
                 self.l1_loss = L1(self.reduction)
-            else: raise NotImplementedError('Invalid reg loss type %s'%method)
+            else: raise NotImplementedError('Invalid reg loss type %s' % method)
         assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
-        assert len(self.loss_weight) == 4,'Please set loss weight for [obj_loss, cls_loss, iou_loss, l1_loss]'
+        assert len(self.loss_weight) == 4, 'Please set loss weight for [obj_loss, cls_loss, iou_loss, l1_loss]'
 
+        # Donot use focal loss for classification loss
         self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+        self.cls_loss.use_focal = False
+
         self.obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
 
     def __call__(self, dt_list, gt_list):
@@ -170,9 +173,11 @@ class FocalBCElogits():
         self.gamma = config.loss.focal_gamma
         self.device = device
         self.baseloss = nn.BCEWithLogitsLoss(reduction='none')
+        self.sigmoid = nn.Sigmoid()
     def __call__(self, dt_cls, gt_cls):
         bceloss = self.baseloss(dt_cls, gt_cls)
         if self.use_focal:
+            dt_cls = self.sigmoid(dt_cls)
             alpha = torch.ones(dt_cls.shape).to(self.device) * self.alpha
             alpha = torch.where(torch.eq(gt_cls, 1.), alpha, 1. - alpha)
             focal_weight = torch.where(torch.eq(gt_cls, 1.), 1 - dt_cls, dt_cls)
