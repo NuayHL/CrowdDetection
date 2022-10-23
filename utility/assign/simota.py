@@ -172,6 +172,7 @@ class SimOTA:
 
 @AssignRegister.register
 @AssignRegister.register('pdsimota')
+@AssignRegister.register('pdsimOTA')
 class SimOTA_PD(SimOTA):
     def assign(self, gt, shift_dt):
         output_size = (len(gt), self.num_anch)
