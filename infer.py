@@ -1,9 +1,6 @@
 import os
-import sys
 import time
 import cv2
-path = os.getcwd()
-sys.path.append(os.path.join(path, 'odcore'))
 from config import get_default_cfg
 from odcore.args import get_infer_args_parser
 from odcore.engine.infer import Infer as _Infer

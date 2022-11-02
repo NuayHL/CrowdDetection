@@ -1,7 +1,5 @@
 import sys
 import os
-path = os.getcwd()
-sys.path.append(os.path.join(path,'odcore'))
 import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp

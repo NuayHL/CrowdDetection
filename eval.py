@@ -1,7 +1,5 @@
 import os
 import sys
-path = os.getcwd()
-sys.path.append(os.path.join(path,'odcore'))
 from odcore.engine.eval import Eval
 from config import get_default_cfg
 from odcore.args import get_eval_args_parser
