@@ -1,6 +1,7 @@
 import numpy as np
 import math
 import cv2
+import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from utility.anchors import result_parse
@@ -18,6 +19,9 @@ class HotMapHooker:
 
     def get_neck_hot_map_hooker(self):
         return self._neck_hot_map_hooker
+
+    def get_neck_feature_analysis_hooker(self):
+        return self._neck_fpm_analysis_hooker
 
     @staticmethod
     def _head_hot_map_hooker(module, input, output):
@@ -68,6 +72,20 @@ class HotMapHooker:
         plt.show()
 
     @staticmethod
+    def _neck_fpm_analysis_hooker(module, input, output):
+        assert input[0].shape[0] == 1, "please using single batch input"
+        in_layer = [layer.squeeze(0).detach() for layer in input]
+        out_layer = [layer.squeeze(0).detach() for layer in output]
+        in_layer_char = [HotMapHooker.feature_map_evaluator(layer) for layer in in_layer]
+        out_layer_char = [HotMapHooker.feature_map_evaluator(layer) for layer in out_layer]
+
+        print(in_layer_char[1]['var'].mean())
+        print(in_layer_char[1]['max'] - in_layer_char[1]['min'])
+
+        print(out_layer_char[1]['var'].mean())
+        print(out_layer_char[1]['max'] - out_layer_char[1]['min'])
+
+    @staticmethod
     def return_hot_map_from_feature(block: np.ndarray, add_bar=True):
         width, height, channel = block.shape
         stack_number = int(math.sqrt(float(channel)))
@@ -88,4 +106,17 @@ class HotMapHooker:
             bar = generate_hot_bar(1.0, 0.0, channel_image.shape[0])
             channel_image = np.concatenate([channel_image, bar], axis=1)
         return channel_image
+
+    @staticmethod
+    def feature_map_evaluator(fpm: torch.Tensor):
+        if len(fpm.shape) == 4:
+            assert fpm.shape[0] == 1, 'Please use single batch input'
+            fpm = fpm[0, ...]
+        assert len(fpm.shape) == 3, 'Expect input feature map shape (b,c,h,w) or (c,h,w)'
+        charactors = dict()
+        charactors['var'] = torch.var(fpm, dim=(1, 2), unbiased=False)
+        charactors['max'] = fpm.max()
+        charactors['min'] = fpm.min()
+
+        return charactors
 
