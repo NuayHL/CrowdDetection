@@ -2,7 +2,6 @@ import math
 from collections import defaultdict
 import torch.nn as nn
 
-import modelzoo.backbone.build
 import modelzoo.head as head
 import modelzoo.neck as neck
 import modelzoo.backbone as backbone
@@ -64,7 +63,12 @@ class BuildModel:
                            **main_model_dict)
 
         # weight init
-        model.apply(weight_init(self.config))
+        model.backbone.apply(weight_init(self.config))
+        if hasattr(model.neck, 'weight_init'):
+            model.neck.weight_init()
+        else:
+            model.neck.apply(weight_init(self.config))
+        model.head.apply(weight_init(self.config))
         model.head.apply(head_bias_init(0.01))
 
         print("Num of Parameters: %.2fM"%(numofParameters(model)/1e6))
