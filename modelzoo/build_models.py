@@ -62,7 +62,7 @@ class BuildModel:
                            head=model_head(classes, anchors, int(backbone_p3c * neck_p3c_r), **head_dict),
                            **main_model_dict)
 
-        # weight init
+        # weight init --------------------------------------------------------------------------------------------------
         model.backbone.apply(weight_init(self.config))
         if hasattr(model.neck, 'weight_init'):
             model.neck.weight_init()
@@ -70,8 +70,9 @@ class BuildModel:
             model.neck.apply(weight_init(self.config))
         model.head.apply(weight_init(self.config))
         model.head.apply(head_bias_init(0.01))
+        # --------------------------------------------------------------------------------------------------------------
 
-        print("Num of Parameters: %.2fM"%(numofParameters(model)/1e6))
+        print("Num of Parameters: %.2fM" % (numofParameters(model)/1e6))
         return model
 
     def get_model_structure(self):
