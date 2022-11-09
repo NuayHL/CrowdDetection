@@ -79,11 +79,13 @@ class HotMapHooker:
         in_layer_char = [HotMapHooker.feature_map_evaluator(layer) for layer in in_layer]
         out_layer_char = [HotMapHooker.feature_map_evaluator(layer) for layer in out_layer]
 
-        print(in_layer_char[1]['var'].mean())
-        print(in_layer_char[1]['max'] - in_layer_char[1]['min'])
+        print('Var:', in_layer_char[1]['var'].mean())
+        print('Max:', in_layer_char[1]['max'])
+        print('Range:', in_layer_char[1]['max'] - in_layer_char[1]['min'])
 
-        print(out_layer_char[1]['var'].mean())
-        print(out_layer_char[1]['max'] - out_layer_char[1]['min'])
+        print('Var:', out_layer_char[1]['var'].mean())
+        print('Max:', out_layer_char[1]['max'])
+        print('Range:', out_layer_char[1]['max'] - out_layer_char[1]['min'])
 
     @staticmethod
     def return_hot_map_from_feature(block: np.ndarray, add_bar=True):
@@ -117,6 +119,7 @@ class HotMapHooker:
         charactors['var'] = torch.var(fpm, dim=(1, 2), unbiased=False)
         charactors['max'] = fpm.max()
         charactors['min'] = fpm.min()
+        charactors['entropy'] = None
 
         return charactors
 
