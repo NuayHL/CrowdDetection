@@ -114,6 +114,110 @@ class NMS():
     def gaussian_kernel(iou):
         return torch.exp(-(iou * iou) / 0.5)
 
+class SetNMS(NMS):
+    def __init__(self, config):
+        super(SetNMS, self).__init__(config)
+        self.mip_k = int(self.config.model.assignment_extra[0]['k'])
+        self.set_table = self.gen_set_table()
+
+    def __call__(self, dets, class_indepent=False):
+        '''Input: dets.shape = [B, n, xywh+o+c] reshaped raw output of the model'''
+        num_classes = dets.shape[2] - 5  # number of classes
+        batch_size = dets.shape[0]
+        pred_candidates = dets[..., 4] > self.conf_thres  # candidates
+        output = [torch.zeros((0, 6), device=dets.device)] * batch_size
+        for ib, det in enumerate(dets):
+            set_table = self.set_table.to(det.device).clone().unsqueeze(dim=1)
+            det = det[pred_candidates[ib]]
+            set_table_ib = set_table[pred_candidates[ib]]
+            det[:, 5:] *= det[:, 4:5]
+            conf, categories = det[:, 5:].max(dim=1, keepdim=True)
+            class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
+            box = xywh2xyxy(det[:, :4]) + class_offset
+            det = torch.cat([box, conf, categories], dim=1)
+            if det.shape[0] == 0:
+                continue
+            det_with_set = torch.cat((det[:, :5], set_table_ib), dim=1)
+            kept_box_mask = self._nms(det_with_set)
+            output[ib] = det[kept_box_mask]
+        return output
+
+    def _nms(self, dets):
+        '''det: [n,5], 5: x1y1x2y2 score, return kept indices. Warning: n must > 0'''
+        eps = 1e-8
+        x1 = dets[:, 0]
+        y1 = dets[:, 1]
+        x2 = dets[:, 2]
+        y2 = dets[:, 3]
+        set_indexes = dets[:, 5].int()
+
+        areas = (x2 - x1) * (y2 - y1)
+        order = dets[:, 4].sort().indices.flip(0)
+        kept_output = []
+
+        zero = torch.tensor(0.0).to(dets.device)
+        one = torch.tensor(1.0).to(dets.device)
+
+        while order.shape[0] > 0:
+            pick_ind = order[0]
+            order = order[1:]
+
+            kept_output.append(pick_ind)
+            set_index = set_indexes[pick_ind]
+            left_order_set = set_indexes[order]
+
+            xx1 = torch.maximum(x1[pick_ind], x1[order])
+            yy1 = torch.maximum(y1[pick_ind], y1[order])
+            xx2 = torch.minimum(x2[pick_ind], x2[order])
+            yy2 = torch.minimum(y2[pick_ind], y2[order])
+
+            inter = torch.maximum(zero, xx2 - xx1) * torch.maximum(zero, yy2 - yy1)
+            iou = inter / (areas[pick_ind] + areas[order] - inter + eps)
+
+            weight = torch.ones_like(iou)
+
+            pos_mask = torch.le(iou, self.iou_thres)
+            set_mask = torch.eq(left_order_set, set_index)
+
+            fin_mask = ~torch.logical_or(pos_mask, set_mask)
+            weight[fin_mask] = self.func(iou[fin_mask])
+            dets[order, 4] *= weight
+
+            order = order[torch.ge(dets[order, 4], self.conf_thres)]
+
+        kept_output = torch.stack(kept_output, dim=0)
+        return kept_output
+
+    def gen_set_table(self):
+        from utility.anchors import Anchor
+        used_anchor = Anchor(self.config)
+        num_in_each_level = torch.tensor(used_anchor.get_num_in_each_level())
+        anchor_per_grid = used_anchor.get_anchors_per_grid()
+        ori_num_anchor = int(num_in_each_level.sum().item())
+        total_num_anchor = ori_num_anchor * self.mip_k
+
+        size_in_each_level = (num_in_each_level / anchor_per_grid).int()
+
+        ori_table = torch.arange(ori_num_anchor).int()
+        set_table = torch.zeros(total_num_anchor).int()
+
+        set_i = 0
+        ori_i = 0
+        for level_size in size_in_each_level:
+            for _ in range(anchor_per_grid):
+                for i in range(self.mip_k):
+                    set_table[set_i: set_i+level_size] = ori_table[ori_i: ori_i+level_size]
+                    set_i += level_size
+                ori_i += level_size
+        assert set_i == total_num_anchor
+        return set_table
+
+if __name__ == "__main__":
+    # num_in_each_level = torch.tensor([8,2])
+    # anchor_per_grid = 2
+    # mip_k = 3
+    pass
+
 def non_max_suppression(prediction, conf_thres=0.25, iou_thres=0.45, classes=None, agnostic=False, multi_label=False, max_det=300):
     """Runs Non-Maximum Suppression (NMS) on inference results.
     This code is borrowed from: https://github.com/ultralytics/yolov5/blob/47233e1698b89fc437a4fb9463c815e9171be955/utils/general.py#L775
@@ -295,9 +399,6 @@ def nms_np(dets, iou_thresh):
 
     return kept_output
 
-def set_nms():
-    pass
-
 def xywh2xyxy(x):
     # Convert boxes with shape [n, 4] from [x, y, w, h] to [x1, y1, x2, y2] where x1y1 is top-left, x2y2=bottom-right
     y = x.clone() if isinstance(x, torch.Tensor) else np.copy(x)
@@ -306,7 +407,3 @@ def xywh2xyxy(x):
     y[:, 2] = x[:, 0] + x[:, 2] / 2  # bottom right x
     y[:, 3] = x[:, 1] + x[:, 3] / 2  # bottom right y
     return y
-
-if __name__ == "__main__":
-    test_det = np.ones((10, 5)) * 0.99
-    nms_np(test_det, 0.6)

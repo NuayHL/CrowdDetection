@@ -7,7 +7,7 @@ from modelzoo.basemodel import BaseODModel
 from utility.assign import get_assign_method
 from utility.anchors import generateAnchors, result_parse, Anchor
 from utility.loss import GeneralLoss_fix, updata_loss_dict
-from utility.nms import non_max_suppression, NMS
+from utility.nms import non_max_suppression, NMS, SetNMS
 from utility.result import Result
 
 # model.set(args, device)
@@ -23,7 +23,10 @@ class YoloX(BaseODModel):
         self.head = head
         self.sigmoid = nn.Sigmoid()
         self.input_shape = (self.config.data.input_width, self.config.data.input_height)
-        self.nms = NMS(config)
+
+        self.using_mip = self.config.model.assignment_type.lower() in ['mip', 'MIP']
+        nms = SetNMS if self.using_mip else NMS
+        self.nms = nms(config)
 
     def core(self,input):
         fms = self.backbone(input)

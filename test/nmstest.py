@@ -1,7 +1,7 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path, '../odcore'))
+os.chdir(os.path.join(path, '..'))
 import torch
 import torch.nn as nn
 from torch import tensor as t
@@ -14,10 +14,13 @@ from config import get_default_cfg
 from utility.assign import AnchorAssign, SimOTA
 from utility.anchors import Anchor, result_parse
 
-device = 1
+import matplotlib
+matplotlib.use('TkAgg')
+
+device = 0
 image_id = 120
 cfg = get_default_cfg()
-cfg.merge_from_files('cfgs/yolox')
+cfg.merge_from_files('cfgs/test_yolox_mip')
 
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
 sample = dataset[image_id]
@@ -34,8 +37,8 @@ model = model.to(device)
 samples['imgs'] = samples['imgs'].to(device).float() / 255
 
 
-para = torch.load('YOLOX_640_NM.pth')
-model.load_state_dict(para['model'])
+# para = torch.load('YOLOX_640_NM.pth')
+# model.load_state_dict(para['model'])
 
 model.eval()
 dt = model(samples)
