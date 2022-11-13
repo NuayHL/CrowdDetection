@@ -3,7 +3,7 @@ import sys
 path = os.getcwd()
 sys.path.append(os.path.join(path, 'odcore'))
 import argparse
-from odcore.utils.visualization import draw_coco_eval, ValLog
+from odcore.utils.visualization import ValLog
 
 
 def get_args_parser(add_help=True):
