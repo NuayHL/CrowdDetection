@@ -19,6 +19,7 @@ c.model.stride_scale = 1.0  # control the stride scale (Probably related to init
 c.model.assignment_type = 'default'
 c.model.assignment_iou_type = 'iou'
 c.model.assignment_iou_threshold = 0.6
+c.model.assignment_extra = None
 
 c.model.init = CN()
 c.model.init.bn_weight = 1.0

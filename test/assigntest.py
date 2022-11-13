@@ -15,6 +15,7 @@ from config import get_default_cfg
 from utility.assign.defaultassign import AnchorAssign
 from utility.assign.simota import SimOTA
 from utility.assign.atss import ATSS
+from utility.assign.mip import MIP
 from utility.anchors import Anchor, result_parse
 
 import matplotlib
@@ -26,9 +27,11 @@ cfg = get_default_cfg()
 cfg.merge_from_files('cfgs/yolox_free_s2')
 
 cfg_anchor = get_default_cfg()
-cfg_anchor.merge_from_files('cfgs/yolox_anchor3')
-assigner_norm = ATSS(cfg_anchor, device)
+cfg_anchor.merge_from_files('cfgs/test_yolox_mip')
+assigner_norm = MIP(cfg_anchor, device)
 
+# cfg_anchor.merge_from_files('cfgs/yolox_anchor')
+# assigner_norm = AnchorAssign(cfg_anchor, device)
 
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json', 'CrowdHuman/Images_train', cfg.data, 'val')
 sample = dataset[200]
@@ -109,8 +112,14 @@ samples = CocoDataset.OD_default_collater([sample])
 anchor_gen = Anchor(cfg_anchor)
 anchs = anchor_gen.gen_Bbox(singleBatch=True)
 anchs = torch.from_numpy(anchs).to(device)
-mask_norm, _, _ = assigner_norm.assign(samples['annss'])
+mask_norm, gts, weight = assigner_norm.assign(samples['annss'])
 mask_norm = mask_norm[0]
+print(len(gts[0]))
+if weight:
+    print(len(weight[0]))
+else:
+    print(torch.gt(mask_norm, 0.1).sum().item())
+
 assign_hot_map(anchs, mask_norm, (640,640), img, gt)
 
 

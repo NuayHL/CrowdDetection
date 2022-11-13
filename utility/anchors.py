@@ -1,4 +1,5 @@
 import numpy as np
+from copy import deepcopy
 
 class Anchor():
     def __init__(self, config):
@@ -7,15 +8,26 @@ class Anchor():
         self.basesize = [2 ** (x + 2) for x in self.fpnlevels]
         self.ratios = config.model.anchor_ratios
         self.scales = config.model.anchor_scales
+        self.using_mip = self.config.model.assignment_type.lower() in ['mip', 'MIP']
+        self.mip_k = None if not self.using_mip else int(self.config.model.assignment_extra[0]['k'])
 
-    def gen_Bbox(self, singleBatch=False):
+    def gen_Bbox(self, singleBatch=False, act_mip_mode_if_use=True):
         # formate = xywh
         allAnchors = np.zeros((0, 4)).astype(np.float32)
         assert len(self.ratios) == len(self.fpnlevels)
         assert len(self.scales) == len(self.fpnlevels)
-        self.anchors_per_grid = len(self.ratios[0])
+        anchors_per_grid = len(self.ratios[0])
         for grid_indi in self.ratios + self.scales:
-            assert len(grid_indi) == self.anchors_per_grid
+            assert len(grid_indi) == anchors_per_grid
+
+        ratios = deepcopy(self.ratios)
+        scales = deepcopy(self.scales)
+
+        # If use MIP..
+        if self.using_mip and act_mip_mode_if_use:
+            anchors_per_grid *= self.mip_k
+            ratios = [self.mip_repeator(ratio, self.mip_k) for ratio in ratios]
+            scales = [self.mip_repeator(scale, self.mip_k) for scale in scales]
 
         for idx, p in enumerate(self.fpnlevels):
             stride = [2 ** p, 2 ** p]
@@ -24,15 +36,9 @@ class Anchor():
             xgrid, ygrid = np.meshgrid(xgrid, ygrid)
             anchors = np.vstack((xgrid.ravel(), ygrid.ravel()))
             lenAnchors = anchors.shape[1]
-            anchors = np.tile(anchors, (2, self.anchors_per_grid)).T
+            anchors = np.tile(anchors, (2, anchors_per_grid)).T
             start = 0
-            # for ratio in self.ratios:
-            #     for scale in self.scales:
-            #         print(ratio, scale)
-            #         anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
-            #         anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
-            #         start += lenAnchors
-            for ratio, scale in zip(self.ratios[idx], self.scales[idx]):
+            for ratio, scale in zip(ratios[idx], scales[idx]):
                 anchors[start:start + lenAnchors, 2] = self.basesize[idx] * scale
                 anchors[start:start + lenAnchors, 3] = self.basesize[idx] * scale * ratio
                 start += lenAnchors
@@ -40,13 +46,14 @@ class Anchor():
             allAnchors = np.append(allAnchors, anchors, axis=0)
 
         # singleBatch return total_anchor_number X 4
-        if singleBatch: return allAnchors
+        if singleBatch:
+            return allAnchors
 
         # batchedAnchor return Batchsize X total_anchor_number X 4
         allAnchors = np.tile(allAnchors, (self.config.training.batch_size, 1, 1))
         return allAnchors
 
-    def gen_points(self,singleBatch=False):
+    def gen_points(self, singleBatch=False, act_mip_mode_if_use=True):
         # formate = xy
         allPoints = np.zeros((0, 2)).astype(np.float32)
         for idx, p in enumerate(self.fpnlevels):
@@ -57,8 +64,14 @@ class Anchor():
             points = np.vstack((xgrid.ravel(), ygrid.ravel())).T
             allPoints = np.append(allPoints, points, axis=0)
 
+            # If use MIP..
+            if self.using_mip and act_mip_mode_if_use:
+                for _ in range(self.mip_k-1):
+                    allPoints = np.append(allPoints, points, axis=0)
+
         # singleBatch return total_anchor_number X 4
-        if singleBatch: return allPoints
+        if singleBatch:
+            return allPoints
 
         # batchedAnchor return Batchsize X total_anchor_number X 4
         allPoints = np.tile(allPoints, (self.config.training.batch_size, 1, 1))
@@ -108,6 +121,13 @@ class Anchor():
             block_indicator[starts: starts+num_in_block, 0] = i
             starts += num_in_block
         return block_indicator
+
+    @staticmethod
+    def mip_repeator(input_list: list, k: int):
+        return_list = list()
+        for item in input_list:
+            return_list += [item] * k
+        return return_list
 
 def generateAnchors(config, basesize=None, fpnlevels=None, ratios=None, scales=None, singleBatch=False):
     '''

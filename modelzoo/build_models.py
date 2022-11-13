@@ -17,7 +17,7 @@ class BuildModel:
         self.model_name = config.model.name
 
     def build(self):
-        print("Building Models: %s"%self.model_name)
+        print("Building Models: %s" % self.model_name)
         main_model = self.get_model_structure()
         backbone_name = self.config.model.backbone
         neck_name = self.config.model.neck
@@ -38,9 +38,8 @@ class BuildModel:
             head_dict = sdict['head']
 
         classes = self.config.data.numofclasses
-        anchors = 1
-        if self.config.model.use_anchor:
-            anchors = len(self.config.model.anchor_ratios[0])
+
+        anchors = self.get_anchors_per_grid()
 
         backbone_module = model_backbone(**backbone_dict)
         try:
@@ -86,6 +85,14 @@ class BuildModel:
             return PDYOLO
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
+
+    def get_anchors_per_grid(self):
+        anchors = 1
+        if self.config.model.use_anchor:
+            anchors = len(self.config.model.anchor_ratios[0])
+        if self.config.model.assignment_type.lower() in ['mip', 'MIP']:
+            anchors = anchors * int(self.config.model.assignment_extra[0]['k'])
+        return anchors
 
 def weight_init(config):
     def init_func(m):

@@ -53,15 +53,15 @@ class AnchorAssign():
             # negative: 0
             # ignore: -1
             # positive: index+1
-            print(iou_max_value.dtype)
-            print((iou_max_idx + 2.0).float().dtype)
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(), iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou - 0.1, 1.0, iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou, 0., iou_max_value)
+            pos_mask = torch.gt(iou_max_value, self.threshold_iou)
+            neg_mask = torch.lt(iou_max_value, self.threshold_iou - 0.1)
+            assign_result_ib = torch.zeros_like(iou_max_value)
+            assign_result_ib[pos_mask] = (iou_max_idx[pos_mask] + 2.0).float()
+            assign_result_ib[neg_mask] = 1.0
 
             # Assign at least one anchor to the gt
-            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
-            assign_result[ib] = iou_max_value - 1
+            assign_result_ib[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).float().to(self.device) + 2
+            assign_result[ib] = assign_result_ib - 1
 
         return assign_result, gt, None
 
@@ -87,28 +87,30 @@ class AnchorAssign():
 
             iou_matrix = self.iou(self.anchs, imgAnn)
             iou_max_value, iou_max_idx = torch.max(iou_matrix, dim=1)
-            iou_max_value_anns, iou_max_idx_anns = torch.max(iou_matrix, dim=0)
+            _, iou_max_idx_anns = torch.max(iou_matrix, dim=0)
             # negative: 0
             # ignore: -1
             # positive: index+1
-            iou_max_value = torch.where(iou_max_value >= self.threshold_iou, (iou_max_idx + 2.0).float(), iou_max_value)
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou - 0.1, 1.0, iou_max_value.double())
-            iou_max_value = torch.where(iou_max_value < self.threshold_iou, .0, iou_max_value.double())
+            pos_mask = torch.gt(iou_max_value, self.threshold_iou)
+            neg_mask = torch.lt(iou_max_value, self.threshold_iou - 0.1)
+            assign_result_ib = torch.zeros_like(iou_max_value)
+            assign_result_ib[pos_mask] = (iou_max_idx[pos_mask] + 2.0).float()
+            assign_result_ib[neg_mask] = 1.0
 
             # Assign at least one anchor to the gt
-            iou_max_value[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).double().to(self.device) + 2
-            iou_max_value = iou_max_value.int()
+            assign_result_ib[iou_max_idx_anns] = torch.arange(imgAnn.shape[0]).float().to(self.device) + 2
+            assign_result_ib = assign_result_ib.int()
             # Dealing with ignored area
             if ignoredAnn.shape[0] != 0:
-                false_sample_idx = torch.eq(iou_max_value, 1)
+                false_sample_idx = torch.eq(assign_result_ib, 1)
                 ignore_iou_matrix = self.iou(self.anchs[false_sample_idx], ignoredAnn)
-                false_sample = iou_max_value[false_sample_idx]
+                false_sample = assign_result_ib[false_sample_idx]
                 ignored_max_iou_value, _ = torch.max(ignore_iou_matrix, dim=1)
                 # set the iou threshold as 0.5
                 ignored_anchor_idx = torch.ge(ignored_max_iou_value, self.threshold_iou)
                 false_sample[ignored_anchor_idx] = 0
-                iou_max_value[false_sample_idx] = false_sample
+                assign_result_ib[false_sample_idx] = false_sample
 
-            assign_result[ib] = iou_max_value - 1
+            assign_result[ib] = assign_result_ib - 1
 
         return assign_result, real_gt, None
