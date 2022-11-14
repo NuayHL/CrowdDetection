@@ -35,10 +35,10 @@ class MIP():
 
     def assign(self, gt):
         output_size = (len(gt), self.anchs.shape[0] * self.mip_k)
-        assign_result = torch.zeros(output_size)
+        assign_result = torch.zeros(output_size).to(self.device)
         weight = []
         fin_gt = []
-        assign_result = assign_result.to(self.device)
+
         for ib in range(len(gt)):
             gt_ib = torch.from_numpy(gt[ib]).float().to(self.device)
             fin_gt.append(gt_ib)

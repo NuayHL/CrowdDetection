@@ -48,6 +48,8 @@ class SimOTA:
                 fin_gt.append(gt_ib)
                 continue
 
+            # in_box_mask_ib: mask_for_anchors,
+            # matched_anchor_gt_mask_ib: mask for positive anchors [num_gt X positive_anchors]
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
                                                                                self.anchs,
                                                                                self.stride)
@@ -89,7 +91,7 @@ class SimOTA:
     @staticmethod
     def get_in_boxes_info(gt_ib, anchor, stride):
         """
-        :param gt_ib: [num_gt, 4]
+        :param gt_ib: [num_gt, 4], gt format: xywh
         :param anchor: [num_anchor, 2]  2:x, y
         :param stride: [num_anchor]
         :return: mask_for_anchors, mask_in_[num_gt X masked_anchors]
@@ -109,10 +111,10 @@ class SimOTA:
         b_b = gt_b - anchor[:, :, 1]
         bbox_deltas = torch.stack([b_l, b_t, b_r, b_b], 2)
 
-        is_in_boxes = bbox_deltas.min(dim=-1).values > 0.0
-        is_in_boxes_all = is_in_boxes.sum(dim=0) > 0
-        # in fixed center
+        is_in_boxes = bbox_deltas.min(dim=-1).values > 0.0  # mask for gt in boxes: [num_gt, num_anchor]
+        is_in_boxes_all = is_in_boxes.sum(dim=0) > 0  # mask for assigned anchors: [num_anchor]
 
+        # in fixed center
         center_radius = 2.5
 
         gt_bboxes_per_image_l = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
@@ -125,8 +127,8 @@ class SimOTA:
         c_t = anchor[:, :, 1] - gt_bboxes_per_image_t
         c_b = gt_bboxes_per_image_b - anchor[:, :, 1]
         center_deltas = torch.stack([c_l, c_t, c_r, c_b], 2)
-        is_in_centers = center_deltas.min(dim=-1).values > 0.0
-        is_in_centers_all = is_in_centers.sum(dim=0) > 0
+        is_in_centers = center_deltas.min(dim=-1).values > 0.0  # mask for gt in boxes center: [num_gt, num_anchor]
+        is_in_centers_all = is_in_centers.sum(dim=0) > 0  # mask for assigned anchors: [num_anchor]
 
         # in boxes and in centers
         is_in_boxes_anchor = is_in_boxes_all | is_in_centers_all
@@ -141,7 +143,7 @@ class SimOTA:
         matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
 
         ious_in_boxes_matrix = pair_wise_ious
-        n_candidate_k = min(10, ious_in_boxes_matrix.size(1))
+        n_candidate_k = min(10, ious_in_boxes_matrix.size(1))  # select number of top k for cal dynamic k
         topk_ious, _ = torch.topk(ious_in_boxes_matrix, n_candidate_k, dim=1)
         dynamic_ks = torch.clamp(topk_ious.sum(1).int(), min=1)
         dynamic_ks = dynamic_ks.tolist()
@@ -300,3 +302,22 @@ class SimOTA_UsingIgnored(SimOTA):
         ignored_weight = self.half_iou(shift_box[:, :4], ignored_gt).sum(dim=1)
         ignored_mask = torch.gt(ignored_weight, 0.7)
         return ignored_mask
+
+class SimOTA_MIP(SimOTA):
+    def __init__(self, config, device):
+        super(SimOTA_MIP, self).__init__(config, device)
+        self.config = config
+        self.device = device
+        anchorGen = Anchor(config)
+        self.iou = IOU(ioutype=config.model.assignment_iou_type, gt_type='xywh', dt_type='xywh')
+        self.using_anchor = config.model.use_anchor
+        if self.using_anchor:
+            self.anchs = torch.from_numpy(anchorGen.gen_Bbox(singleBatch=True, act_mip_mode_if_use=False)).to(device)
+        else:
+            self.anchs = torch.from_numpy(anchorGen.gen_points(singleBatch=True, act_mip_mode_if_use=False)).to(device)
+        self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
+        self.num_classes = config.data.numofclasses
+        self.num_anch = len(self.anchs)
+
+
+        
