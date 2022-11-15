@@ -4,10 +4,13 @@ from copy import deepcopy
 class Anchor():
     def __init__(self, config):
         self.config = config
+        self.using_anchor = config.model.use_anchor
         self.fpnlevels = config.model.fpnlevels
         self.basesize = [2 ** (x + 2) for x in self.fpnlevels]
         self.ratios = config.model.anchor_ratios
         self.scales = config.model.anchor_scales
+        self.free_scale = config.model.stride_scale
+
         self.using_mip = self.config.model.assignment_type.lower() in ['mip', 'MIP']
         self.mip_k = None if not self.using_mip else int(self.config.model.assignment_extra[0]['k'])
 
@@ -79,26 +82,35 @@ class Anchor():
 
     def gen_stride(self, singleBatch=True):
         num_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
+        size_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
+        anchors_per_grid = self.get_anchors_per_grid()
         for id, i in enumerate(self.fpnlevels):
             temp = self.config.data.input_width * self.config.data.input_height / (2 ** (2*i))
-            if self.config.model.use_anchor:
+            size_in_each_level[id] *= temp
+            if self.using_anchor:
                 assert len(self.ratios) == len(self.fpnlevels)
                 assert len(self.scales) == len(self.fpnlevels)
-                anchors_per_grid = len(self.ratios[0])
                 for grid_indi in self.ratios + self.scales:
                     assert len(grid_indi) == anchors_per_grid
                 temp *= anchors_per_grid
             num_in_each_level[id] *= temp
         stride = np.ones(num_in_each_level.sum())
         start_index = 0
-        for i, num in zip(self.fpnlevels, num_in_each_level):
-            stride[start_index: start_index+num] *= 2**i
-            start_index += num
-        if singleBatch: return stride
+        if self.using_anchor:
+            for i, num in zip(self.fpnlevels, num_in_each_level):
+                stride[start_index: start_index+num] *= (2**i)*self.free_scale
+                start_index += num
+        else:
+            for i, scales, size in zip(self.fpnlevels, self.scales, size_in_each_level):
+                for scale in scales:
+                    stride[start_index: start_index+size] *= (2**i)*scale
+                    start_index += size
+        if singleBatch:
+            return stride
         return np.tile(stride, (self.config.training.batch_size, 1))
 
     def get_anchors_per_grid(self):
-        return len(self.ratios[0]) if self.config.model.use_anchor else 1
+        return len(self.ratios[0]) if self.using_anchor else 1
 
     def get_num_in_each_level(self):
         num_list = []
