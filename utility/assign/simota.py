@@ -29,6 +29,7 @@ class SimOTA:
         else:
             self.anchs = torch.from_numpy(anchorGen.gen_points(singleBatch=True)).to(device)
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
+        self.ratio = torch.from_numpy(anchorGen.gen_ratio(singleBatch=True)).to(device) * 0.5
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
 
@@ -52,7 +53,8 @@ class SimOTA:
             # matched_anchor_gt_mask_ib: mask for positive anchors [num_gt X positive_anchors]
             in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
                                                                                self.anchs,
-                                                                               self.stride)
+                                                                               self.stride,
+                                                                               self.ratio)
             shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
             dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
             dt_cls_ib_ = dt_ib[in_box_mask_ib, 5:]
@@ -89,15 +91,21 @@ class SimOTA:
         return assign_result, fin_gt, cls_weights
 
     @staticmethod
-    def get_in_boxes_info(gt_ib, anchor, stride):
+    def get_in_boxes_info(gt_ib, anchor, stride, ratio=None):
         """
         :param gt_ib: [num_gt, 4], gt format: xywh
         :param anchor: [num_anchor, 2]  2:x, y
         :param stride: [num_anchor]
+        :param ratio: [num_anchor]
         :return: mask_for_anchors, mask_in_[num_gt X masked_anchors]
         """
         total_num_anchors = len(anchor)
         num_gt = len(gt_ib)
+
+        if isinstance(ratio, torch.Tensor):
+            pass
+        else:
+            ratio = torch.ones_like(stride)
 
         anchor = anchor.unsqueeze(0).repeat(num_gt, 1, 1)
         gt_l = (gt_ib[:, 0] - gt_ib[:, 2] * 0.5).unsqueeze(1).repeat(1, total_num_anchors)
@@ -119,8 +127,8 @@ class SimOTA:
 
         gt_bboxes_per_image_l = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
         gt_bboxes_per_image_r = gt_ib[:, 0].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
-        gt_bboxes_per_image_t = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride
-        gt_bboxes_per_image_b = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride
+        gt_bboxes_per_image_t = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) - center_radius * stride * ratio
+        gt_bboxes_per_image_b = gt_ib[:, 1].unsqueeze(1).repeat(1, total_num_anchors) + center_radius * stride * ratio
 
         c_l = anchor[:, :, 0] - gt_bboxes_per_image_l
         c_r = gt_bboxes_per_image_r - anchor[:, :, 0]

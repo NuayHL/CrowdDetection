@@ -96,7 +96,7 @@ class Anchor():
             num_in_each_level[id] *= temp
         stride = np.ones(num_in_each_level.sum())
         start_index = 0
-        if self.using_anchor:
+        if not self.using_anchor:
             for i, num in zip(self.fpnlevels, num_in_each_level):
                 stride[start_index: start_index+num] *= (2**i)*self.free_scale
                 start_index += num
@@ -108,6 +108,32 @@ class Anchor():
         if singleBatch:
             return stride
         return np.tile(stride, (self.config.training.batch_size, 1))
+
+    def gen_ratio(self, singleBatch=True):
+        if not self.using_anchor:
+            'Need adding warning'
+            return None
+        num_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
+        size_in_each_level = []
+        anchors_per_grid = self.get_anchors_per_grid()
+        for id, i in enumerate(self.fpnlevels):
+            temp = self.config.data.input_width * self.config.data.input_height / (2 ** (2*i))
+            size_in_each_level.append(int(temp))
+            assert len(self.ratios) == len(self.fpnlevels)
+            assert len(self.scales) == len(self.fpnlevels)
+            for grid_indi in self.ratios + self.scales:
+                assert len(grid_indi) == anchors_per_grid
+            temp *= anchors_per_grid
+            num_in_each_level[id] *= temp
+        fin_ratio = np.ones(num_in_each_level.sum())
+        start_index = 0
+        for i, ratios, size in zip(self.fpnlevels, self.ratios, size_in_each_level):
+            for ratio in ratios:
+                fin_ratio[start_index: start_index+size] *= ratio
+                start_index += size
+        if singleBatch:
+            return fin_ratio
+        return np.tile(fin_ratio, (self.config.training.batch_size, 1))
 
     def get_anchors_per_grid(self):
         return len(self.ratios[0]) if self.using_anchor else 1
