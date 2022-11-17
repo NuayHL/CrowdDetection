@@ -29,7 +29,8 @@ class SimOTA:
         else:
             self.anchs = torch.from_numpy(anchorGen.gen_points(singleBatch=True)).to(device)
         self.stride = torch.from_numpy(anchorGen.gen_stride(singleBatch=True)).to(device)
-        self.ratio = torch.from_numpy(anchorGen.gen_ratio(singleBatch=True)).to(device) * 0.5
+        self.ratio = torch.from_numpy(anchorGen.gen_ratio(singleBatch=True)).to(device) * 0.5 \
+            if config.model.use_anchor else None
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
 

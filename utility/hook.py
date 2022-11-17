@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 import matplotlib.pyplot as plt
 from utility.anchors import result_parse
+from utility.gaussian_mask import Conv_Mask_2D
 from odcore.utils.visualization import stack_img, generate_hot_bar
 
 
@@ -34,8 +35,11 @@ class HotMapHooker:
         hot_map_list = result_parse(cfg, hot_map, restore_size=True)
 
         sum_result = []
+        tensor_result = []#
+        conv_mask = Conv_Mask_2D(3)
         for id, level in enumerate(hot_map_list):
             for il, fm in enumerate(level):
+                tensor_result.append(torch.clamp(conv_mask(fm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2), min=0.0, max=1.0).numpy())#
                 fm = fm.numpy()
                 sum_result.append(fm)
 
@@ -43,12 +47,16 @@ class HotMapHooker:
         anchor_per_grid = len(cfg.model.anchor_ratios[0]) if cfg.model.use_anchor else 1
 
         sum_result = stack_img(sum_result, (fpnlevels, anchor_per_grid))
+        mask_result = stack_img(tensor_result, (fpnlevels, anchor_per_grid))#
         bar = generate_hot_bar(1.0, 0.0, sum_result.shape[0])
         sum_result = np.concatenate([sum_result, bar], axis=1)
+        mask_result = np.concatenate([mask_result, bar], axis=1)
         HotMapHooker.data['head_hot_map_img'] = sum_result
-        fig, ax = plt.subplots()
-        ax.imshow(sum_result)
-        ax.axis('off')
+        fig, ax = plt.subplots(2)
+        ax[0].imshow(sum_result)
+        ax[1].imshow(mask_result)
+        ax[0].axis('off')
+        ax[1].axis('off')
         plt.show()
 
     @staticmethod
