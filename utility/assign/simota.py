@@ -328,5 +328,92 @@ class SimOTA_MIP(SimOTA):
         self.num_classes = config.data.numofclasses
         self.num_anch = len(self.anchs)
 
+    def assign(self, gt, shift_dt):
+        output_size = (len(gt), self.num_anch)
+        assign_result = torch.zeros(output_size).to(self.device)
+        cls_weights = []
+        fin_gt = []
 
+        for ib in range(len(gt)):
+            dt_ib = shift_dt[ib].t()
+            gt_ib = torch.from_numpy(gt[ib]).to(self.device)
+
+            if len(gt_ib) == 0:  # deal with blank image
+                assign_result[ib] = torch.zeros(self.num_anch)
+                cls_weights.append(0)
+                fin_gt.append(gt_ib)
+                continue
+
+            # in_box_mask_ib: mask_for_anchors,
+            # matched_anchor_gt_mask_ib: mask for positive anchors [num_gt X positive_anchors]
+            in_box_mask_ib, matched_anchor_gt_mask_ib = self.get_in_boxes_info(gt_ib,
+                                                                               self.anchs,
+                                                                               self.stride)
+            shift_Bbox_pre_ib_ = dt_ib[in_box_mask_ib, :4]
+            dt_obj_ib_ = dt_ib[in_box_mask_ib, 4:5]
+            dt_cls_ib_ = dt_ib[in_box_mask_ib, 5:]
+
+            num_in_gt_anch_ib = shift_Bbox_pre_ib_.shape[0]
+            num_gt_ib = len(gt_ib)
+
+            iou_gt_dt_pre_ib = self.iou(gt_ib, shift_Bbox_pre_ib_)
+            iou_loss_ib = - torch.log(iou_gt_dt_pre_ib + 1e-5)
+
+            gt_cls_ib = gt_ib[:, 4].to(torch.int64)
+
+            gt_cls_ib = F.one_hot(gt_cls_ib, self.num_classes) \
+                .to(torch.float32).unsqueeze(1).repeat(1, num_in_gt_anch_ib, 1)
+
+            with torch.cuda.amp.autocast(enabled=False):
+                dt_cls_ib_ = (dt_cls_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_()
+                              * dt_obj_ib_.float().unsqueeze(0).repeat(num_gt_ib, 1, 1).sigmoid_())
+                cls_loss_ib = F.binary_cross_entropy(dt_cls_ib_.sqrt_(), gt_cls_ib, reduction='none').sum(-1)
+
+            cost_ib = (cls_loss_ib + 3.0 * iou_loss_ib + 100000.0 * (~matched_anchor_gt_mask_ib))
+
+            matched_id_ib, cls_ib_weight = self.dynamic_k_matching(cost_ib, iou_gt_dt_pre_ib, num_gt_ib, in_box_mask_ib)
+
+            # negative: 0
+            # positive: index+1
+            assignment = in_box_mask_ib.float()
+            assignment[in_box_mask_ib.clone()] = matched_id_ib.float() + 1
+
+            assign_result[ib] = assignment
+            cls_weights.append(cls_ib_weight)
+            fin_gt.append(gt_ib)
+
+        return assign_result, fin_gt, cls_weights
+
+    @staticmethod
+    def dynamic_k_matching(cost, pair_wise_ious, num_gt, fg_mask):
+        matching_matrix = torch.zeros_like(cost, dtype=torch.uint8)
+
+        ious_in_boxes_matrix = pair_wise_ious
+        n_candidate_k = min(10, ious_in_boxes_matrix.size(1))  # select number of top k for cal dynamic k
+        topk_ious, _ = torch.topk(ious_in_boxes_matrix, n_candidate_k, dim=1)
+        dynamic_ks = torch.clamp(topk_ious.sum(1).int(), min=1)
+        dynamic_ks = dynamic_ks.tolist()
+        for gt_idx in range(num_gt):
+            _, pos_idx = torch.topk(
+                cost[gt_idx], k=dynamic_ks[gt_idx], largest=False
+            )
+            matching_matrix[gt_idx][pos_idx] = 1
+
+        del topk_ious, dynamic_ks, pos_idx
+
+        anchor_matching_gt = matching_matrix.sum(0)
+        if (anchor_matching_gt > 1).sum() > 0:  # deal with the ambigous anchs
+            _, cost_argmin = torch.min(cost[:, anchor_matching_gt > 1], dim=0)
+            matching_matrix[:, anchor_matching_gt > 1] *= 0
+            matching_matrix[cost_argmin, anchor_matching_gt > 1] = 1
+        fg_mask_inboxes = matching_matrix.sum(0) > 0  # the final assigned ones among the in anchors
+
+        fg_mask[fg_mask.clone()] = fg_mask_inboxes
+
+        matched_gt_inds = matching_matrix[:, fg_mask_inboxes].argmax(0)
+
+        cls_weight = (matching_matrix * pair_wise_ious).sum(0)[
+            fg_mask_inboxes
+        ]
+        return matched_gt_inds, cls_weight
         
