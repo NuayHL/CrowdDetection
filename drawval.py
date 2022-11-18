@@ -11,7 +11,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--val-log', default='', type=str, help='full path of _loss.log file')
     parser.add_argument('-exp', default='', type=str, help='experiment name')
     parser.add_argument('-type', default='coco', type=str, help='Val metric type: coco or mr')
-    parser.add_argument('--zero-start', action='store_true', type=str, help='Adding 0 value at start of each line')
+    parser.add_argument('--zero-start', action='store_true', help='Adding 0 value at start of each line')
     return parser
 
 
