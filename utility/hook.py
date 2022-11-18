@@ -36,10 +36,10 @@ class HotMapHooker:
 
         sum_result = []
         tensor_result = []#
-        conv_mask = Conv_Mask_2D(3)
+        conv_mask = Conv_Mask_2D(7)
         for id, level in enumerate(hot_map_list):
             for il, fm in enumerate(level):
-                tensor_result.append(torch.clamp(conv_mask(fm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2), min=0.0, max=1.0).numpy())#
+                tensor_result.append(conv_mask(fm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2).numpy())#
                 fm = fm.numpy()
                 sum_result.append(fm)
 

@@ -79,9 +79,10 @@ class Conv_Mask_2D:
         self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
 
-    @torch.no_grad()
     def __call__(self, x):
-        return self.conv(x)
+        x = torch.clamp(self.conv(x), min=0.0, max=1.0)
+        x = x * 0.5 + 0.5
+        return x
 
 if __name__ == '__main__':
     import cv2

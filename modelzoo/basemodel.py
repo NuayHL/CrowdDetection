@@ -23,6 +23,10 @@ class BaseODModel(nn.Module):
         """related to your flexible design"""
         raise NotImplementedError('Please create inferencing function')
 
+    def get_coco_parser(self):
+        """return function coco parse"""
+        return self.coco_parse_result
+
     @staticmethod
     def coco_parse_result(results):
         """
