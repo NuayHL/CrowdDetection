@@ -11,6 +11,7 @@ def get_args_parser(add_help=True):
     parser.add_argument('--val-log', default='', type=str, help='full path of _loss.log file')
     parser.add_argument('-exp', default='', type=str, help='experiment name')
     parser.add_argument('-type', default='coco', type=str, help='Val metric type: coco or mr')
+    parser.add_argument('--zero-start', action='store_true', type=str, help='Adding 0 value at start of each line')
     return parser
 
 
@@ -20,9 +21,9 @@ def main(args):
     else:
         vallog = ValLog('running_log/%s/%s_val.log' % (args.exp, args.exp))
     if args.type == 'coco':
-        vallog.coco_draw(zero_start=True)
+        vallog.coco_draw(zero_start=args.zero_start)
     else:
-        vallog.mr_draw(zero_start=True)
+        vallog.mr_draw(zero_start=args.zero_start)
 
 if __name__ == '__main__':
     args = get_args_parser().parse_args()
