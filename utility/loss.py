@@ -87,7 +87,8 @@ class GeneralLoss_fix():
         losses = {}
         categories, pos_num_samples = dt_list['cls'].shape
 
-        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / pos_num_samples
+        div = max(pos_num_samples, 1.0)
+        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / div
 
         if pos_num_samples != 0:
             losses['cls'] = self.cls_loss(dt_list['cls'], gt_list['cls']) * self.loss_weight[1] * categories
@@ -158,6 +159,65 @@ class PedestrianLoss():
 
         losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight['obj'] / pos_num_samples
 
+        fin_loss = 0
+        for loss in losses.values():
+            fin_loss += loss
+        for key in losses:
+            losses[key] = losses[key].detach().cpu().item()
+        return fin_loss, losses
+
+class GeneralLoss_fix_R():
+    def __init__(self, config, device, reduction='sum'):
+        self.config = config
+        self.device = device
+        self.reduction = reduction
+        self.loss_parse()
+        self.zero = torch.tensor(0, dtype=torch.float32).to(device)
+
+    def loss_parse(self):
+        self.loss_weight = self.config.loss.weight
+        assert len(self.config.loss.reg_type) == 2
+        iou_flag = False
+        l1_flag = False
+        for method in self.config.loss.reg_type:
+            if method in ['ciou', 'diou', 'giou', 'siou']:
+                iou_flag = True
+                self.iou_type = method
+                self.iou_loss = IOUloss(iou_type=method, bbox_type='xywh', reduction=self.reduction)
+            elif method in ['l1']:
+                l1_flag = True
+                self.l1_loss = L1(self.reduction)
+            else: raise NotImplementedError('Invalid reg loss type %s' % method)
+        assert iou_flag and l1_flag,'Reg loss must have l1 and iou!'
+        assert len(self.loss_weight) == 4, 'Please set loss weight for [obj_loss, cls_loss, iou_loss, l1_loss]'
+
+        # Donot use focal loss for classification loss
+        self.cls_loss = FocalBCElogits(self.config, self.device, reduction=self.reduction)
+        self.cls_loss.use_focal = False
+
+        self.obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
+        self.aux_obj_loss = FocalBCElogits(self.config, self.device, reduction='sum')
+
+    def __call__(self, dt_list, gt_list):
+        '''
+        dt_dict.keys() = [obj, cls, iou, l1, aux_obj]
+        gt_dict.keys() = [obj, cls, iou, l1]
+        '''
+        losses = {}
+        categories, pos_num_samples = dt_list['cls'].shape
+
+        div = max(pos_num_samples, 1.0)
+        losses['obj'] = self.obj_loss(dt_list['obj'], gt_list['obj']) * self.loss_weight[0] / div
+        losses['aux_obj'] = self.aux_obj_loss(dt_list['aux_obj'], gt_list['obj']) * self.loss_weight[0] * 0.1 / div
+
+        if pos_num_samples != 0:
+            losses['cls'] = self.cls_loss(dt_list['cls'], gt_list['cls']) * self.loss_weight[1] * categories
+            losses[self.iou_type] = self.iou_loss(dt_list['iou'], gt_list['iou']) * self.loss_weight[2]
+            losses['l1'] = self.l1_loss(dt_list['l1'], gt_list['l1']) * self.loss_weight[3]
+        else:
+            losses['cls'] = self.zero
+            losses[self.iou_type] = self.zero
+            losses['l1'] = self.zero
         fin_loss = 0
         for loss in losses.values():
             fin_loss += loss

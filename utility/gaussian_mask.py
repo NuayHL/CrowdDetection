@@ -76,10 +76,12 @@ class Conv_Mask_2D:
 
         weight = 1 - dist.float()/(padding + 1)
 
+        self.weight = weight.unsqueeze(dim=0)
         self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
 
     def __call__(self, x):
+        self.conv.weight = nn.Parameter(self.weight.to(x.dtype).to(x.device))
         x = torch.clamp(self.conv(x), min=0.0, max=1.0)
         x = x * 0.5 + 0.5
         return x
