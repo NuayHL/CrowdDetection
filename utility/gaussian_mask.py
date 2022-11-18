@@ -86,6 +86,31 @@ class Conv_Mask_2D:
         x = x * 0.5 + 0.5
         return x
 
+    def set_weight(self, weight):
+        assert isinstance(weight, torch.Tensor) and weight.shape == self.weight.shape
+        self.weight = weight
+
+class Conv_Mask_2D_trainable(nn.Module):
+    def __init__(self, kernel_size):
+        super(Conv_Mask_2D_trainable, self).__init__()
+        kernel_x = np.arange(0, kernel_size, 1)
+        kernel_y = np.arange(0, kernel_size, 1)
+        kernel_x, kernel_y = np.meshgrid(kernel_x, kernel_y)
+        kernel = torch.from_numpy(np.stack([kernel_x, kernel_y], axis=0))
+        padding = int(kernel_size//2)
+        dist, _ = torch.max(torch.abs(padding-kernel), dim=0, keepdim=True)
+
+        weight = 1 - dist.float()/(padding + 1)
+
+        self.weight = weight.unsqueeze(dim=0)
+        self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
+        self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
+
+    def forward(self, x):
+        x = torch.clamp(self.conv(x), min=0.0, max=1.0)
+        x = x * 0.5 + 0.5
+        return x
+
 if __name__ == '__main__':
     import cv2
     import os
