@@ -1,5 +1,6 @@
 import math
 from collections import defaultdict
+import torch
 import torch.nn as nn
 
 import modelzoo.head as head
@@ -67,6 +68,7 @@ class BuildModel:
 
         # weight init --------------------------------------------------------------------------------------------------
         if self.use_pretrained_backbone:
+            print('using pretrained_backbone')
             model.load_state_dict(get_part_module_dict(self.config.model.init.backbone, 'backbone'), strict=False)
         else:
             model.backbone.apply(weight_init(self.config))
