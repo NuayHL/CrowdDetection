@@ -26,6 +26,9 @@ c.model.init.bn_weight = 1.0
 c.model.init.bn_bias = 0.0
 c.model.init.bn_eps = 1e-5
 c.model.init.bn_momentum = 0.1
+c.model.init.backbone = None
+c.model.init.neck = None
+c.model.init.head = None
 
 c.loss = CN()
 c.loss.reg_type = ['giou', 'l1']

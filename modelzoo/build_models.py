@@ -16,6 +16,9 @@ class BuildModel:
     def __init__(self, config):
         self.config = config
         self.model_name = config.model.name
+        self.use_pretrained_backbone = False if not config.model.init.backbone else True
+        self.use_pretrained_neck = False if not config.model.init.neck else True
+        self.use_pretrained_head = False if not config.model.init.head else True
 
     def build(self):
         print("Building Models: %s" % self.model_name)
@@ -24,7 +27,7 @@ class BuildModel:
         neck_name = self.config.model.neck
         head_name = self.config.model.head
         model_backbone = backbone.build_backbone(backbone_name)
-        model_neck= neck.build_neck(neck_name)
+        model_neck = neck.build_neck(neck_name)
         model_head = head.build_head(head_name)
 
         main_model_dict = {}
@@ -63,13 +66,24 @@ class BuildModel:
                            **main_model_dict)
 
         # weight init --------------------------------------------------------------------------------------------------
-        model.backbone.apply(weight_init(self.config))
-        if hasattr(model.neck, 'weight_init'):
-            model.neck.weight_init()
+        if self.use_pretrained_backbone:
+            model.load_state_dict(get_part_module_dict(self.config.model.init.backbone, 'backbone'), strict=False)
         else:
-            model.neck.apply(weight_init(self.config))
-        model.head.apply(weight_init(self.config))
-        model.head.apply(head_bias_init(0.01))
+            model.backbone.apply(weight_init(self.config))
+
+        if self.use_pretrained_neck:
+            model.load_state_dict(get_part_module_dict(self.config.model.init.neck, 'neck'), strict=False)
+        else:
+            if hasattr(model.neck, 'weight_init'):
+                model.neck.weight_init()
+            else:
+                model.neck.apply(weight_init(self.config))
+
+        if self.use_pretrained_head:
+            model.load_state_dict(get_part_module_dict(self.config.model.init.head, 'head'), strict=False)
+        else:
+            model.head.apply(weight_init(self.config))
+            model.head.apply(head_bias_init(0.01))
         # --------------------------------------------------------------------------------------------------------------
 
         print("Num of Parameters: %.2fM" % (numofParameters(model)/1e6))
@@ -118,7 +132,17 @@ def head_bias_init(prior_prob):
                 nn.init.constant_(m.bias, fill_in_)
     return init_func
 
-def numofParameters(model: nn.Module ):
+def get_part_module_dict(pth_path, module_name):
+    assert module_name in ['backbone','neck','head']
+    state_dict = torch.load(pth_path)
+    state_dict = state_dict['model']
+    return_dict = dict()
+    for key in state_dict.keys():
+        if module_name in key:
+            return_dict[key] = state_dict[key]
+    return return_dict
+
+def numofParameters(model: nn.Module):
     nump = 0
     for par in model.parameters():
         nump += par.numel()
