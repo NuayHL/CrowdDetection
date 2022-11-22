@@ -43,8 +43,7 @@ class PDYOLO(BaseODModel):
         else:
             assert self.assign_type != "default", "Assign type %s do not support anchor free style" % self.assign_type
             self.anchs = torch.from_numpy(self.anch_gen.gen_points(singleBatch=True)).float().to(device)
-            scale = self.config.model.stride_scale
-            single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True) * scale).float().to(
+            single_stride = torch.from_numpy(self.anch_gen.gen_stride(singleBatch=True)).float().to(
                 device).unsqueeze(1)
             self.stride = torch.cat([single_stride, single_stride], dim=1)
         self.num_of_proposal = self.anchs.shape[0]

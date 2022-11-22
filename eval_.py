@@ -18,7 +18,8 @@ def main(args):
     iou_thres = np.arange(0.6, 0.8, 0.01).astype(float).tolist()
     summary = []
     summary_dict = dict()
-    for iou_thre in iou_thres:
+    for step, iou_thre in enumerate(iou_thres):
+        print('./n STEP[%d/%d]' % (step+1, len(iou_thres)))
         model.nms.iou_thres = iou_thre
         eval = Eval(cfg, args, model, 0)
         iou_id = str('%.2f' % iou_thre)
