@@ -19,7 +19,7 @@ def main(args):
     summary = []
     summary_dict = dict()
     for iou_thre in iou_thres:
-        cfg.inference.iou_thres = iou_thre
+        model.nms.iou_thres = iou_thre
         eval = Eval(cfg, args, model, 0)
         iou_id = str('%.2f' % iou_thre)
         val_result = eval.eval(record_name='IoU Threshold='+iou_id)
