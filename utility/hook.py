@@ -36,7 +36,7 @@ class HotMapHooker:
 
         sum_result = []
         tensor_result = []#
-        conv_mask = Conv_Mask_2D(7)
+        conv_mask = Conv_Mask_2D(5)
         for id, level in enumerate(hot_map_list):
             for il, fm in enumerate(level):
                 tensor_result.append(conv_mask(fm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2).numpy())#
@@ -52,7 +52,7 @@ class HotMapHooker:
         sum_result = np.concatenate([sum_result, bar], axis=1)
         mask_result = np.concatenate([mask_result, bar], axis=1)
         HotMapHooker.data['head_hot_map_img'] = sum_result
-        fig, ax = plt.subplots(2)
+        fig, ax = plt.subplots(1,2)
         ax[0].imshow(sum_result)
         ax[1].imshow(mask_result)
         ax[0].axis('off')

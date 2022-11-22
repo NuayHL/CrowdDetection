@@ -111,6 +111,29 @@ class Conv_Mask_2D_trainable(nn.Module):
         x = x * 0.5 + 0.5
         return x
 
+class Conv_Mask_2D_trainable_soft(nn.Module):
+    def __init__(self, kernel_size):
+        super(Conv_Mask_2D_trainable_soft, self).__init__()
+        kernel_x = np.arange(0, kernel_size, 1)
+        kernel_y = np.arange(0, kernel_size, 1)
+        kernel_x, kernel_y = np.meshgrid(kernel_x, kernel_y)
+        kernel = torch.from_numpy(np.stack([kernel_x, kernel_y], axis=0))
+        padding = int(kernel_size//2)
+        dist, _ = torch.max(torch.abs(padding-kernel), dim=0, keepdim=True)
+
+        weight = 1 - dist.float()/(padding + 1)
+
+        self.weight = weight.unsqueeze(dim=0)
+        self.sigmoid = nn.Sigmoid()
+        self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
+        self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
+        self.soft_weight = nn.Parameter(torch.tensor(1.0, dtype=torch.float, requires_grad=True))
+
+    def forward(self, x):
+        x = self.sigmoid(self.conv(x))
+        x = x * self.soft_weight + (1 - self.soft_weight)
+        return x
+
 if __name__ == '__main__':
     import cv2
     import os
@@ -121,13 +144,15 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     matplotlib.use('TkAgg')
 
-    a = torch.zeros((1, 1, 9, 9))
+    conv_mask = Conv_Mask_2D_trainable_soft(7)
 
-    a[:,:,4,4] = 1
-
-    conv_mask = Conv_Mask_2D(7)
-
-    print(conv_mask(a))
+    # a = torch.zeros((1, 1, 9, 9))
+    #
+    # a[:,:,4,4] = 1
+    #
+    # conv_mask = Conv_Mask_2D(7)
+    #
+    # print(conv_mask(a))
 
 
     # from config import get_default_cfg
