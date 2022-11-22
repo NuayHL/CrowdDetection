@@ -127,7 +127,7 @@ class Conv_Mask_2D_trainable_soft(nn.Module):
         self.sigmoid = nn.Sigmoid()
         self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
-        self.soft_weight = nn.Parameter(torch.tensor(1.0, dtype=torch.float, requires_grad=True))
+        self.soft_weight = nn.Parameter(torch.tensor(0.5, dtype=torch.float, requires_grad=True))
 
     def forward(self, x):
         x = self.sigmoid(self.conv(x))
