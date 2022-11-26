@@ -76,7 +76,7 @@ class Conv_Mask_2D:
 
         weight = 1 - dist.float()/(padding + 1)
 
-        self.weight = weight.unsqueeze(dim=0).tile(1, input_channels, 1, 1) / input_channels
+        self.weight = weight.unsqueeze(dim=0).tile(1, input_channels, 1, 1)
         self.conv = nn.Conv2d(input_channels, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.conv.weight = nn.Parameter(self.weight)
 
