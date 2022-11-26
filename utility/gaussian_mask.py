@@ -66,7 +66,7 @@ def gen_gaussian_mask_gen(gts, sigma_ratio=(0.25, 0.4)):
     return multi_mask
 
 class Conv_Mask_2D:
-    def __init__(self, kernel_size):
+    def __init__(self, input_channels=1, kernel_size=7):
         kernel_x = np.arange(0, kernel_size, 1)
         kernel_y = np.arange(0, kernel_size, 1)
         kernel_x, kernel_y = np.meshgrid(kernel_x, kernel_y)
@@ -76,9 +76,10 @@ class Conv_Mask_2D:
 
         weight = 1 - dist.float()/(padding + 1)
 
-        self.weight = weight.unsqueeze(dim=0)
-        self.conv = nn.Conv2d(1, 1, kernel_size=kernel_size, padding=padding, bias=False)
-        self.conv.weight = nn.Parameter(weight.unsqueeze(dim=0))
+        self.weight = weight.unsqueeze(dim=0).tile(1, input_channels, 1, 1) / input_channels
+        self.conv = nn.Conv2d(input_channels, 1, kernel_size=kernel_size, padding=padding, bias=False)
+        self.conv.weight = nn.Parameter(self.weight)
+
 
     def __call__(self, x):
         self.conv.weight = nn.Parameter(self.weight.to(x.dtype).to(x.device))
@@ -144,15 +145,15 @@ if __name__ == '__main__':
     import matplotlib.pyplot as plt
     matplotlib.use('TkAgg')
 
-    conv_mask = Conv_Mask_2D_trainable_soft(7)
+    # conv_mask = Conv_Mask_2D_trainable_soft(7)
 
-    # a = torch.zeros((1, 1, 9, 9))
-    #
-    # a[:,:,4,4] = 1
-    #
-    # conv_mask = Conv_Mask_2D(7)
-    #
-    # print(conv_mask(a))
+    a = torch.zeros((1, 2, 9, 9))
+
+    a[:, :, 4, 4] = 1
+
+    conv_mask = Conv_Mask_2D(7, 2)
+
+    print(conv_mask(a))
 
 
     # from config import get_default_cfg
