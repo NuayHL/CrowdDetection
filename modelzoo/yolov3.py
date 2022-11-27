@@ -5,7 +5,7 @@ from modelzoo.basemodel import BaseODModel
 from utility.assign.defaultassign import AnchorAssign
 from utility.anchors import generateAnchors, result_parse, Anchor
 from utility.loss import GeneralLoss, updata_loss_dict
-from utility.nms import non_max_suppression
+from utility.nms import non_max_suppression, NMS
 from utility.result import Result
 
 class Yolov3(BaseODModel):
@@ -18,6 +18,7 @@ class Yolov3(BaseODModel):
         self.head = head
         self.sigmoid = nn.Sigmoid()
         self.input_shape = (self.config.data.input_width, self.config.data.input_height)
+        self.nms = NMS(self.config)
 
     def core(self, input):
         p3, p4, p5 = self.backbone(input)
@@ -115,11 +116,7 @@ class Yolov3(BaseODModel):
         dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
 
         dt = torch.permute(dt, (0,2,1))
-        if self.config.inference.nms_type == 'nms':
-            result_list = non_max_suppression(dt, conf_thres=self.config.inference.obj_thres,
-                                              iou_thres=self.config.inference.iou_thres)
-        else:
-            raise NotImplementedError
+        result_list = self.nms(dt)
         fin_result = []
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
             fin_result.append(Result(result, id, ori_shape,self.input_shape))

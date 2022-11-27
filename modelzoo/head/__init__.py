@@ -3,6 +3,7 @@ load_modules('modelzoo.head', __file__)
 
 # Import for the old ckpt
 from modelzoo.head.yoloxhead import YOLOX_head
+from modelzoo.head.yolov3head import Yolov3_head
 
 from .build import build_head
 __all__ = ["build_head"]
