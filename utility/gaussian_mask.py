@@ -66,7 +66,7 @@ def gen_gaussian_mask_gen(gts, sigma_ratio=(0.25, 0.4)):
     return multi_mask
 
 class Conv_Mask_2D:
-    def __init__(self, input_channels=1, kernel_size=7):
+    def __init__(self, input_channels=1, kernel_size=7, yita=0.5):
         kernel_x = np.arange(0, kernel_size, 1)
         kernel_y = np.arange(0, kernel_size, 1)
         kernel_x, kernel_y = np.meshgrid(kernel_x, kernel_y)
@@ -79,12 +79,12 @@ class Conv_Mask_2D:
         self.weight = weight.unsqueeze(dim=0).tile(1, input_channels, 1, 1)
         self.conv = nn.Conv2d(input_channels, 1, kernel_size=kernel_size, padding=padding, bias=False)
         self.conv.weight = nn.Parameter(self.weight)
-
+        self.yita = yita
 
     def __call__(self, x):
         self.conv.weight = nn.Parameter(self.weight.to(x.dtype).to(x.device))
         x = torch.clamp(self.conv(x), min=0.0, max=1.0)
-        x = x * 0.5 + 0.5
+        x = x * self.yita + 1 - self.yita
         return x
 
     def set_weight(self, weight):
