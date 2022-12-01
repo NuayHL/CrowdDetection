@@ -1,0 +1,32 @@
+exp_name: YOLOX_s
+inference:
+  iou_thres: 0.75
+  nms_type: soft_g
+  obj_thres: 0.01
+loss:
+  cls_type: bce
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  reg_type: ['siou', 'l1']
+  use_focal: False
+  weight: [1.0, 1.0, 5.0 ,1.0]
+model:
+  anchor_ratios: [1]
+  anchor_scales: [1]
+  assignment_iou_threshold: 0.5
+  assignment_iou_type: iou
+  assignment_type: simOTA
+  fpnlevels: [3, 4, 5]
+  name: yolox
+  backbone: cspdarknet
+  head: yolox_head
+  neck: pafpn
+  structure_extra: [{'backbone':{'depth':0.33, 'width':0.50, 'depthwise':False, 'act':'silu'},
+                     'neck':{'depth':0.33, 'depthwise':False, 'act':'silu'},
+                     'head':{'depthwise':False, 'act':'silu'},}]
+  use_anchor: False
+  stride_scale: 1.0
+  init:
+    bn_eps: 1e-3
+    bn_momentum: 0.03
+seed: None
