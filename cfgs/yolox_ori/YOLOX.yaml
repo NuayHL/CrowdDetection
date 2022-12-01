@@ -1,8 +1,8 @@
 exp_name: YOLOX_ori
 inference:
-  iou_thres: 0.6
+  iou_thres: 0.75
   nms_type: soft_g
-  obj_thres: 0.25
+  obj_thres: 0.01
 loss:
   cls_type: bce
   focal_alpha: 0.25

@@ -1,7 +1,6 @@
 import os
 import sys
 path = os.getcwd()
-sys.path.append(os.path.join(path, '../odcore'))
 os.chdir(os.path.join(path, '..'))
 import torch
 import numpy as np

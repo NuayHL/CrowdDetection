@@ -22,4 +22,4 @@ training:
   train_img_path: CrowdHuman/Images_train
   val_img_anns_path: CrowdHuman/annotation_val_coco_style.json
   val_img_path: CrowdHuman/Images_val
-  val_metric: coco
+  val_metric: mr
