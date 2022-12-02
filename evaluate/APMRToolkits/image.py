@@ -60,6 +60,8 @@ class Image(object):
         """
         dtboxes = self.dtboxes if self.dtboxes is not None else list()
         gtboxes = self.gtboxes if self.gtboxes is not None else list()
+        if len(dtboxes) == 0:
+            return list()
         dt_matched = np.zeros(dtboxes.shape[0])
         gt_matched = np.zeros(gtboxes.shape[0])
 

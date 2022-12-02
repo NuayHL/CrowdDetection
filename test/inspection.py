@@ -1,7 +1,6 @@
-import sys
 import os
 path = os.getcwd()
-sys.path.append(os.path.join(path,'odcore'))
+os.chdir(os.path.join(path, '..'))
 from odcore.data.dataloader import build_dataloader
 from odcore.data.dataset import CocoDataset
 from odcore.data.data_augment import *
@@ -11,13 +10,17 @@ import numpy as np
 import torch
 
 
+import matplotlib
+matplotlib.use('TkAgg')
+
 cfg = get_default_cfg()
-cfg.merge_from_file('coco_config.yaml')
-dataset = CocoDataset('COCO/instances_train2017.json','COCO/train2017',config_data=cfg.data, task='train')
+cfg.merge_from_files('cfgs/yolox_ori')
+dataset = CocoDataset('WiderPerson/widerperson_val_coco_style.json','WiderPerson/Images',config_data=cfg.data, task='val')
 # loader = build_dataloader('CrowdHuman/annotation_train_coco_style_100.json','CrowdHuman/Images_train',config_data=cfg.data,
 #                           batch_size=1, rank=-1,workers=0, task='train')
-# samples = dataset.load_sample(10)
-# show_bbox(samples['img'],samples['anns'])
+# samples = dataset[114]
+samples = dataset.load_sample(114)
+show_bbox(samples['img'],samples['anns'])
 # letterbox = LetterBox(cfg.data, auto=False, scaleup=True)
 # letterbox(samples)
 # show_bbox(samples['img'],samples['anns'])
@@ -26,11 +29,11 @@ dataset = CocoDataset('COCO/instances_train2017.json','COCO/train2017',config_da
 # ra(samples)
 # show_bbox(samples['img'],samples['anns'])
 
-for anns_id in dataset.annotations.anns:
-    bbox = np.array(dataset.annotations.anns[anns_id]['bbox'])
-    print(bbox)
-    if bbox.shape[0] == 0:
-        print('TMD')
+# for anns_id in dataset.annotations.anns:
+#     bbox = np.array(dataset.annotations.anns[anns_id]['bbox'])
+#     print(bbox)
+#     if bbox.shape[0] == 0:
+#         print('TMD')
 
 # dataset_inspection(dataset, 15, anntype='xywh')
 # dataset_inspection(dataset, 15, anntype='xywh')

@@ -32,7 +32,7 @@ class Database(object):
         else:
             for record in records:
                 self.images[record["ID"]].load(record, body_key, head_key, PERSON_CLASSES, False)
-                # self.images[record["ID"]].clip_all_boader()
+                self.images[record["ID"]].clip_all_boader()
 
     def compare(self, thres=0.5, matching=None):
         """
