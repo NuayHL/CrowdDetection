@@ -17,6 +17,5 @@ def main(args):
     evaluate.eval()
 
 if __name__ == "__main__":
-    print(os.getcwd())
     args = get_eval_args_parser().parse_args()
     main(args)
