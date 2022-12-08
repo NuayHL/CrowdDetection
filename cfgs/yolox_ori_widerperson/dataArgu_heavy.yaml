@@ -1,16 +1,16 @@
 data:
   annotation_format: x1y1wh
 
-  mixup: 0.243
-  mosaic: 1.0
+  mixup: 0.25
+  mosaic: 0.5
   fliplr: 0.5
   flipud: 0.0
   hsv_h: 0.0138
-  hsv_s: 0.664
-  hsv_v: 0.464
-  scale: 0.5
-  shear: 0.602
-  translate: 0.245
+  hsv_s: 0.665
+  hsv_v: 0.460
+  scale: 0.2
+  shear: 0.5
+  translate: 0.15
   degrees: 0.373
 
   ignored_input: False
@@ -18,8 +18,8 @@ data:
   input_width: 640
   input_height: 640
 
-  input_mean: [0.46431773, 0.44211456, 0.4223358]
-  input_std: [0.29044453, 0.28503336, 0.29363019]
+  input_mean: [0.50866708, 0.46492086, 0.44554575]
+  input_std: [0.28001202, 0.27688674, 0.28769288]
 
   numofclasses: 1
 

@@ -36,9 +36,9 @@ def val_compare(*val_files, metric_type='mr', short_exp_name=True):
     plt.show()
 
 if __name__ == '__main__':
-    val_compare('YOLOX_ori',
-                'YOLOX_R',
-                metric_type='coco')
+    val_compare('YOLOX_ori_1',
+                'YOLOX_R_k7',
+                metric_type='mr')
 
 
 
