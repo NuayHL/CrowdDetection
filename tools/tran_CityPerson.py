@@ -64,6 +64,8 @@ def Cityperson2coco(filepaths, anno_type='train'):
         images_path = os.path.join(images_path, 'val')
 
     num_imgs = len(imageinfos)
+
+    bbox_id_count = 0
     for idx, imageinfo in enumerate(imageinfos):
         imageinfo = imageinfo[0][0]
         city_name = str(imageinfo[0])[2:][:-2]
@@ -78,10 +80,11 @@ def Cityperson2coco(filepaths, anno_type='train'):
         for anno in image_annos:
             bbox_cat = anno[0]
             categories_id = 0 if bbox_cat in [1,2,3,4] else -1
-            if categories_id == 0 and anno_type == 'val':
+            if bbox_cat == 0 and anno_type == 'val':
                 continue
             iscrowd = 1 if bbox_cat == 5 else 0
-            bbox_id = anno[5]
+            bbox_id = bbox_id_count
+            bbox_id_count += 1
             bbox_full = anno[1:5]
             bbox_vis = anno[6:]
             area = float(bbox_full[2] * bbox_full[3])  # bbox_area
@@ -103,5 +106,5 @@ def progressbar(percentage, endstr='', barlenth=20):
           format(percentage * 100, '.1f'), '%', end=' '+endstr)
 
 if __name__ == '__main__':
-    Cityperson2coco("CityPerson/anno_train.mat", "train")
+    #Cityperson2coco("CityPerson/anno_train.mat", "train")
     Cityperson2coco("CityPerson/anno_val.mat", "val")

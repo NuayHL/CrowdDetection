@@ -3,7 +3,7 @@ training:
   batch_size: 8
   workers: 8
   eval_interval: 20
-  final_epoch: 300
+  final_epoch: 200
   last_no_mosaic: 20
   warm_up_steps: 1000
   using_autocast: True

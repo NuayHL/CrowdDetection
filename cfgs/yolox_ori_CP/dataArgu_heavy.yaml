@@ -13,7 +13,7 @@ data:
   translate: 0.15
   degrees: 0.373
 
-  ignored_input: True
+  ignored_input: False
 
   input_width: 1280
   input_height: 800
