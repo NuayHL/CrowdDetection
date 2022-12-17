@@ -2,7 +2,7 @@ data:
   annotation_format: x1y1wh
 
   mixup: 0.25
-  mosaic: 0.5
+  mosaic: 1.0
   fliplr: 0.5
   flipud: 0.0
   hsv_h: 0.0138
@@ -15,8 +15,8 @@ data:
 
   ignored_input: True
 
-  input_width: 640
-  input_height: 640
+  input_width: 1280
+  input_height: 800
 
   input_mean: [0.28689553, 0.32513301, 0.28389176]
   input_std: [0.18696375, 0.19017339, 0.18720214]

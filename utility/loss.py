@@ -166,6 +166,10 @@ class PedestrianLoss():
             losses[key] = losses[key].detach().cpu().item()
         return fin_loss, losses
 
+class GeneralLoss_fix_R():
+    def __init__(self):
+        pass
+
 
 class FocalBCElogits():
     def __init__(self, config, device, reduction='none'):
