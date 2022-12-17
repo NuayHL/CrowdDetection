@@ -11,7 +11,7 @@ from modelzoo.yolov3 import Yolov3
 from modelzoo.yolo import YoloX
 from modelzoo.retinanet import RetinaNet
 from modelzoo.pdyolo import PDYOLO
-from modelzoo.test_ryolo import RYoloX, RYoloX_B, RYoloX_wa
+from modelzoo.test_ryolo import RYoloX, RYoloX_B
 
 class BuildModel:
     def __init__(self, config):
@@ -104,8 +104,6 @@ class BuildModel:
             return RYoloX
         elif self.model_name == 'ryolo_b':
             return RYoloX_B
-        elif self.model_name == 'ryolo_wa':
-            return RYoloX_wa
         else:
             raise NotImplementedError('No model named %s' % (self.model_name))
 
