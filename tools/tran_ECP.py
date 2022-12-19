@@ -7,7 +7,9 @@ import cv2
 Ignore_Type = ['person-group-far-away',
                'rider+vehicle-group-far-away']
 
-Pass_Type = ['motorbike', 'buggy', 'scooter', 'tricycle', 'bicycle', 'wheelchair']
+Pass_Type = ['bicycle-group', 'buggy-group', 'motorbike-group',
+             'scooter-group', 'tricycle-group', 'wheelchair-group',
+             'motorbike', 'buggy', 'scooter', 'tricycle', 'bicycle', 'wheelchair']
 
 def ECP2coco(label_path, anno_type='train'):
     '''
@@ -116,4 +118,5 @@ def progressbar(percentage, endstr='', barlenth=20):
           format(percentage * 100, '.1f'), '%', end=' '+endstr)
 
 if __name__ == '__main__':
-    ECP2coco("ECP/labels/train", "train")
+    ECP2coco("ECP/day/labels/train", "train")
+    ECP2coco("ECP/day/labels/val", "val")
