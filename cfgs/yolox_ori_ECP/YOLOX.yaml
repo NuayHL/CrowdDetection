@@ -1,7 +1,7 @@
 exp_name: YOLOX_ori_ECP
 inference:
-  iou_thres: 0.75
-  nms_type: soft_g
+  iou_thres: 0.6
+  nms_type: soft
   obj_thres: 0.01
 loss:
   cls_type: bce

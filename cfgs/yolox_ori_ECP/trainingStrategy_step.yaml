@@ -2,10 +2,10 @@ training:
   accumulate: 1
   batch_size: 8
   workers: 8
-  eval_interval: 20
+  eval_interval: 2
   final_epoch: 50
   last_no_mosaic: 0
-  warm_up_steps: 1000
+  warm_up_steps: 800
   using_autocast: True
   optimizer:
     lr: 0.00125
