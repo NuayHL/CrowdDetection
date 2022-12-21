@@ -41,8 +41,12 @@ def progressbar(percentage, endstr='', barlenth=20):
 if __name__ == "__main__":
     print(os.getcwd())
 
-    mean, std = cal_img_mean_std("WiderPerson/widerperson_train_coco_style.json", "WiderPerson/Images")
+    mean, std = cal_img_mean_std("ECP/day/labels/train_coco_style.json", "ECP/day/img/train")
     print("mean:", mean)
     #[0.4223358  0.44211456 0.46431773]
     print("std:", std)
     #[0.29363019 0.28503336 0.29044453]
+
+    # ECP
+    # mean: [0.35733526 0.36444973 0.34919569]
+    # std: [0.23302755 0.23708822 0.23204576]

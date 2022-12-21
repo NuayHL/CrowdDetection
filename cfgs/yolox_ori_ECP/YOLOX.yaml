@@ -29,5 +29,5 @@ model:
   init:
     bn_eps: 1e-3
     bn_momentum: 0.03
-    backbone: running_log/YOLOX_ori_1/best_epoch.pth
+#    backbone: running_log/YOLOX_ori_1/best_epoch.pth
 seed: None
