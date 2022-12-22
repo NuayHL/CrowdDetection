@@ -13,13 +13,16 @@ data:
   translate: 0.245
   degrees: 0.373
 
-  ignored_input: False
+  ignored_input: True
 
   input_width: 1280
   input_height: 800
 
-  input_mean: [0.34919569, 0.36444973, 0.35733526]
-  input_std: [0.23204576, 0.23708822, 0.23302755]
+  input_mean: [0.46431773, 0.44211456, 0.4223358]
+  input_std: [0.29044453, 0.28503336, 0.29363019]
 
-  numofclasses: 1
+#  input_mean: [0.34919569, 0.36444973, 0.35733526]
+#  input_std: [0.23204576, 0.23708822, 0.23302755]
+
+  numofclasses: 2
 
