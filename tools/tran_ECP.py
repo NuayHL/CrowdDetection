@@ -55,7 +55,8 @@ def ECP2coco(label_path, anno_type='train'):
     info = dict()
     images = []
     annotations = []
-    categories = [{"supercategory": "person", "id": 0, "name": "person"}]
+    categories = [{"supercategory": "person", "id": 0, "name": "pedestrian"},
+                  {"supercategory": "person", "id": 1, "name": "rider"}]
 
     info["year"] = 2018
     print("begin convert %s to coco format" % label_path)
@@ -84,7 +85,15 @@ def ECP2coco(label_path, anno_type='train'):
                 categories_name = anno['identity']
                 if categories_name in Pass_Type:
                     continue
-                categories_id = -1 if categories_name in Ignore_Type else 0
+                elif categories_name == 'pedestrian':
+                    categories_id = 0
+                elif categories_name == 'rider':
+                    categories_id = 1
+                elif categories_name in Ignore_Type:
+                    categories_id = -1
+                else:
+                    raise NameError
+
                 categories_set.append(categories_name)
                 x1 = float(anno['x0'])
                 y1 = float(anno['y0'])
