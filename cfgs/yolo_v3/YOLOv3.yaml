@@ -1,0 +1,28 @@
+exp_name: YOLOv3
+inference:
+  iou_thres: 0.75
+  nms_type: nms
+  obj_thres: 0.01
+loss:
+  cls_type: bce
+  focal_alpha: 0.25
+  focal_gamma: 2.0
+  reg_type: ['giou', 'l1']
+  use_focal: False
+  weight: [1.0, 1.0, 5.0 ,1.0]
+model:
+  anchor_ratios: [1]
+  anchor_scales: [1]
+  assignment_iou_threshold: 0.5
+  assignment_iou_type: iou
+  assignment_type: simota
+  fpnlevels: [3, 4, 5]
+  name: yolo_like
+  backbone: darknet53
+  head: yolov3_head
+  neck: yolov3_neck
+  structure_extra: [{'backbone':{},
+                     'neck':{},
+                     'head':{},}]
+  use_anchor: False
+seed: None
