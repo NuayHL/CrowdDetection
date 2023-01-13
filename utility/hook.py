@@ -18,6 +18,9 @@ class HotMapHooker:
     def get_head_hot_map_hooker(self):
         return self._head_hot_map_hooker
 
+    def get_rhead_hot_map_hooker(self):
+        return self._rhead_hot_map_hooker
+
     def get_neck_hot_map_hooker(self):
         return self._neck_hot_map_hooker
 
@@ -35,8 +38,8 @@ class HotMapHooker:
         hot_map_list = result_parse(cfg, hot_map, restore_size=True)
 
         sum_result = []
-        tensor_result = []#
-        conv_mask = Conv_Mask_2D(5)
+        tensor_result = [] #
+        conv_mask = Conv_Mask_2D(kernel_size=9)
         for id, level in enumerate(hot_map_list):
             for il, fm in enumerate(level):
                 tensor_result.append(conv_mask(fm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2).numpy())#
@@ -57,6 +60,61 @@ class HotMapHooker:
         ax[1].imshow(mask_result)
         ax[0].axis('off')
         ax[1].axis('off')
+        plt.show()
+
+    @staticmethod
+    def _rhead_hot_map_hooker(module, input, output):
+        cfg = HotMapHooker.config
+        sigmoid = nn.Sigmoid()
+        hotmap = sigmoid(output[:, 4, :])
+        assert len(hotmap.shape) == 2, "please using single batch input"
+        hot_map = hotmap.t().detach().cpu()
+        HotMapHooker.data['head_hot_map'] = hot_map
+        hot_map_list = result_parse(cfg, hot_map, restore_size=True)
+
+        auxhotmap = sigmoid(output[:, 5, :])
+        aux_hot_map = auxhotmap.t().detach().cpu()
+        HotMapHooker.data['rhead_hot_map'] = aux_hot_map
+        r_hot_map_list = result_parse(cfg, aux_hot_map, restore_size=True)
+
+        hot_map_array = []
+        r_hot_map_array = []
+        tensor_result = [] # for illustrating
+
+        mask_kernel = cfg.model.structure_extra[0]['head']['mask_kernel']
+        yita = cfg.model.structure_extra[0]['head']['yita']
+        conv_mask = Conv_Mask_2D(input_channels=1, kernel_size=mask_kernel, yita=yita)
+
+        for levels, rlevels in zip(hot_map_list,r_hot_map_list):
+            for fm, rfm in zip(levels, rlevels):
+                tensor_result.append(conv_mask(rfm.squeeze().unsqueeze(dim=0).unsqueeze(dim=0)).squeeze().unsqueeze(dim=2).numpy())#
+                rfm = rfm.numpy()
+                r_hot_map_array.append(rfm)
+                fm = fm.numpy()
+                hot_map_array.append(fm)
+                print((fm-rfm).sum())
+
+        fpnlevels = len(cfg.model.fpnlevels)
+        anchor_per_grid = len(cfg.model.anchor_ratios[0]) if cfg.model.use_anchor else 1
+
+        hot_map_array = stack_img(hot_map_array, (fpnlevels, anchor_per_grid))
+        bar = generate_hot_bar(1.0, 0.0, hot_map_array.shape[0])
+        hot_map_array = np.concatenate([hot_map_array, bar], axis=1)
+        HotMapHooker.data['head_hot_map_img'] = hot_map_array
+
+        r_hot_map_array = stack_img(r_hot_map_array, (fpnlevels, anchor_per_grid))
+        r_hot_map_array = np.concatenate([r_hot_map_array, bar], axis=1)
+        HotMapHooker.data['r_head_hot_map_img'] = r_hot_map_array
+
+        mask_result = stack_img(tensor_result, (fpnlevels, anchor_per_grid))#
+        mask_result = np.concatenate([mask_result, bar], axis=1)
+
+        fig, ax = plt.subplots(1,3)
+        ax[0].imshow(hot_map_array)
+        ax[1].imshow(r_hot_map_array)
+        ax[2].imshow(mask_result)
+        for sub_ax in ax:
+            sub_ax.axis('off')
         plt.show()
 
     @staticmethod
