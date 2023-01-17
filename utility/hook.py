@@ -27,6 +27,9 @@ class HotMapHooker:
     def get_neck_feature_analysis_hooker(self):
         return self._neck_fpm_analysis_hooker
 
+    def get_cbam_spatial_att_hooker(self):
+        return self._cbam_spatial_hooker
+
     @staticmethod
     def _head_hot_map_hooker(module, input, output):
         cfg = HotMapHooker.config
@@ -135,6 +138,18 @@ class HotMapHooker:
         ax[1].imshow(out_layer[0])
         ax[1].axis('off')
 
+        plt.show()
+
+    @staticmethod
+    def _cbam_spatial_hooker(module, input, output):
+        spatial_att = output.squeeze(0).permute((1, 2, 0)).detach().cpu().numpy()
+        bar = generate_hot_bar(1.0, 0.0, spatial_att.shape[0])
+        print(spatial_att.shape)
+        print(bar.shape)
+        output_img = np.concatenate([spatial_att, bar], axis=1)
+        fig, ax = plt.subplots()
+        ax.imshow(output_img)
+        ax.axis('off')
         plt.show()
 
     @staticmethod

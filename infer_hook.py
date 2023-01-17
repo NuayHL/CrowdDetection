@@ -22,9 +22,16 @@ class BaseInfer():
         model = builder.build()
         model.set(args, self.device)
         self.hooker = HotMapHooker(cfg)
+
+        # from modelzoo.attention.CBAM import CBAMBlock
+        # for child in model.backbone.dark4.children():
+        #     if isinstance(child, CBAMBlock):
+        #         child.sa.register_forward_hook(self.hooker.get_cbam_spatial_att_hooker())
+
         model.head.register_forward_hook(self.hooker.get_head_hot_map_hooker())
-        model.neck.register_forward_hook(self.hooker.get_neck_hot_map_hooker())
-        model.neck.register_forward_hook(self.hooker.get_neck_feature_analysis_hooker())
+        # model.head.register_forward_hook(self.hooker.get_rhead_hot_map_hooker())
+        # model.neck.register_forward_hook(self.hooker.get_neck_hot_map_hooker())
+        # model.neck.register_forward_hook(self.hooker.get_neck_feature_analysis_hooker())
         self.core_infer = _Infer(cfg, args, model, self.device)
 
     def __call__(self, *img):
