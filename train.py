@@ -4,6 +4,7 @@ import torch
 import torch.distributed as dist
 import torch.multiprocessing as mp
 from odcore.engine.train import Train as _Train
+from odcore.engine.train_step import Train as _Train_step
 from odcore.args import get_train_args_parser
 from config import get_default_cfg
 from utility.envs import get_envs, seed_init
@@ -25,7 +26,10 @@ class Train():
     def go(self):
         seed_init(self.config.seed)
         model = self.builder.build()
-        train = _Train(self.config, self.args, model, self.rank)
+        if self.args.step_lr:
+            train = _Train_step(self.config, self.args, model, self.rank)
+        else:
+            train = _Train(self.config, self.args, model, self.rank)
         train.go()
 
     def check_resume(self):

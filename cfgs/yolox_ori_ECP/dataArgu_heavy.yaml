@@ -15,8 +15,8 @@ data:
 
   ignored_input: True
 
-  input_width: 1280
-  input_height: 800
+  input_width: 1024
+  input_height: 640
 
   input_mean: [0.46431773, 0.44211456, 0.4223358]
   input_std: [0.29044453, 0.28503336, 0.29363019]
