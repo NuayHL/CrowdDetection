@@ -27,8 +27,10 @@ class Train():
         seed_init(self.config.seed)
         model = self.builder.build()
         if self.args.step_lr:
+            print("Using step wise learning rate scheduler")
             train = _Train_step(self.config, self.args, model, self.rank)
         else:
+            print("Using epoch wise learning rate scheduler")
             train = _Train(self.config, self.args, model, self.rank)
         train.go()
 
