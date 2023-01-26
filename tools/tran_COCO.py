@@ -12,14 +12,20 @@ def progressbar(percentage, endstr='', barlenth=20):
           format(percentage * 100, '.1f'), '%', end=' '+endstr)
 
 def modify_categories(filepath, outputname):
+    with open("../odcore/data/categories_coco.json", 'r') as fp:
+        coco_cat = json.load(fp)
+    trans_dict = {}
+    for i, classname in enumerate(coco_cat):
+        trans_dict[int(classname['id'])] = i
+        classname['id'] = i
+
     with open(filepath) as f:
         annos = json.load(f)
     anno_len = float(len(annos['annotations']))
     for i, anno in enumerate(annos['annotations']):
-        anno['category_id'] -= 1
+        anno['category_id'] = trans_dict[anno['category_id']]
         progressbar((i+1)/anno_len, barlenth=40)
-    for cate in annos['categories']:
-        cate['id'] -= 1
+    annos['categories'] = coco_cat
     with open(os.path.join(os.path.dirname(filepath), outputname),'w') as f:
         json.dump(annos, f)
 
