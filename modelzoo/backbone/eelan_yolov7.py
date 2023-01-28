@@ -8,6 +8,9 @@ Conv = YOLOv7_common.Conv
 Multi_Concat_Block = YOLOv7_common.Multi_Concat_Block
 Transition_Block = YOLOv7_common.Transition_Block
 
+# the structure of the YOLOv7 is referring to the official code and third party code
+# https://github.com/WongKinYiu/yolov7
+# https://github.com/bubbliiiing/yolov7-pytorch/tree/master/nets
 @BackboneRegister.register
 @BackboneRegister.register('E-ELAN-CSP-YOLOv7')
 class Eelan_YOLOv7(nn.Module):
