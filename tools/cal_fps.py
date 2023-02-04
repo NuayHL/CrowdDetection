@@ -2,6 +2,7 @@ import os
 
 path = os.getcwd()
 print(os.getcwd())
+os.chdir(os.path.join(path, '..'))
 import torch
 from torch.cuda import amp
 import time
@@ -16,7 +17,7 @@ def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
     print("CONFIG: %s" % cfg)
     config = get_default_cfg()
     config.merge_from_files(cfg)
-    config.inference.obj_thres = 0.3
+    config.inference.obj_thres = 0.25
     builder = BuildModel(config)
     model = builder.build()
     model.set(None, device)
@@ -66,7 +67,8 @@ def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
             torch.cuda.synchronize()
             start_time = time.perf_counter()
             with torch.no_grad():
-                model.core(sample['imgs'])
+                model(sample)
+                # model.core(sample['imgs'])
             torch.cuda.synchronize()
             elapsed = time.perf_counter() - start_time
 
@@ -86,6 +88,10 @@ def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
     print("[MAX. FPS: %f]" % max(total_fps))
     print("========== Complete ==========\n")
 
+def _measure_fps(expname, pthname='best_epoch'):
+    datalenth = 100
+    measure_fps('running_log/%s/%s_cfg.yaml'%(expname,expname),
+                'running_log/%s/%s.pth'%(expname,pthname), rept=5, datalenth=datalenth)
 
 class ProgressBar:
     def __init__(self, iters, barlenth=20, endstr=''):
@@ -114,14 +120,22 @@ class ProgressBar:
 if __name__ == "__main__":
     datalenth = 100
 
+
+    # _measure_fps('YOLOX_ori_1')
+    # _measure_fps('YOLOX_R_k9_0.2')
+    # _measure_fps('YOLOX_m', 'epoch_265')
+    # _measure_fps('YOLOX_m_R', 'epoch_297')
+    # _measure_fps('YOLOX_s', 'epoch_299')
+    # _measure_fps('YOLOX_s_R', 'epoch_290')
+    _measure_fps('YOLOv3', 'epoch_240')
+
     # measure_fps('cfgs/test_ryolo_v3', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/test_ryolo_v4', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/test_ryolo_v7', rept=10, datalenth=datalenth)
-    # measure_fps('cfgs/test_ryolo_s', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolo_s', rept=10, datalenth=datalenth)
     # measure_fps('cfgs/test_ryolo_m', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/test_ryolox_x', rept=5, datalenth=datalenth)
-
-    # measure_fps('cfgs/yolox_ori', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolox_coco',rept=5, datalenth=datalenth)
     # measure_fps('cfgs/yolox_m', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/yolox_s', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/yolo_v3', rept=5, datalenth=datalenth)

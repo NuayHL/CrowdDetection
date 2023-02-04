@@ -3,12 +3,12 @@ training:
   batch_size: 32
   workers: 8
   eval_interval: 1
-  final_epoch: 80
-  last_no_mosaic: 0
-  warm_up_steps: 1000
+  final_epoch: 150
+  last_no_mosaic: 7
+  warm_up_steps: 4000
   using_autocast: True
   optimizer:
-    lr: 0.005
+    lr: 0.01
     mode: default
     momentum: 0.937
     type: sgd
