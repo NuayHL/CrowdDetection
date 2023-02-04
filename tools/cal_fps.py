@@ -1,6 +1,7 @@
 import os
+
 path = os.getcwd()
-os.chdir(os.path.join(path, '..'))
+print(os.getcwd())
 import torch
 from torch.cuda import amp
 import time
@@ -10,19 +11,20 @@ from odcore.data.dataloader import build_dataloader
 from odcore.data.data_augment import Normalizer
 from odcore.utils.paralle import de_parallel
 
-def measure_fps(cfg, ckpt='',device=0, rept=1, datalenth=10000):
+
+def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
     print("CONFIG: %s" % cfg)
     config = get_default_cfg()
     config.merge_from_files(cfg)
+    config.inference.obj_thres = 0.3
     builder = BuildModel(config)
     model = builder.build()
     model.set(None, device)
     normalizer = Normalizer(config.data, device)
-    dataloader = build_dataloader("CrowdHuman/annotation_val_coco_style_2000.json",
-                                  "CrowdHuman/Images_val",
+    dataloader = build_dataloader("COCO/val2017_coco.json",
+                                  "COCO/val2017",
                                   config.data,
                                   batch_size=1, rank=-1, workers=0, task='val')
-
 
     print('Model Parameters: ', end='')
     if ckpt != '':
@@ -43,16 +45,17 @@ def measure_fps(cfg, ckpt='',device=0, rept=1, datalenth=10000):
     else:
         print('No ckpt for eval')
 
+    assert warmup_num < datalenth
+
     model = model.to(device)
     model.eval()
     total_fps = []
 
     for exp in range(rept):
-        print('========== Exp%d ==========' % (exp+1))
-        warmup_num = 20
+        print('========== Exp%d ==========' % (exp + 1))
         total_img = 0
         total_inferecing_time = 0.0
-        pro_bar = ProgressBar(min(len(dataloader),datalenth))
+        pro_bar = ProgressBar(min(len(dataloader), datalenth))
 
         for i, sample in enumerate(dataloader):
             if i >= datalenth:
@@ -75,11 +78,12 @@ def measure_fps(cfg, ckpt='',device=0, rept=1, datalenth=10000):
             pro_bar.update(endstr='%f' % elapsed)
         print("total-time: %f" % total_inferecing_time)
         print("total-images: %s" % total_img)
-        fps = total_img/total_inferecing_time
+        fps = total_img / total_inferecing_time
         print("FPS: %f\n" % fps)
         total_fps.append(fps)
 
-    print("[Aver. FPS: %f]" % (sum(total_fps)/rept))
+    print("[Aver. FPS: %f]" % (sum(total_fps) / rept))
+    print("[MAX. FPS: %f]" % max(total_fps))
     print("========== Complete ==========\n")
 
 
@@ -106,10 +110,20 @@ class ProgressBar:
               format(percentage * 100, '.1f'), '%',
               end=' ' + self._end + ' ' + endstr)
 
+
 if __name__ == "__main__":
-    measure_fps('cfgs/yolox_ori', rept=3, datalenth=120)
-    measure_fps('cfgs/yolox_m', rept=3, datalenth=120)
-    measure_fps('cfgs/yolox_s', rept=3, datalenth=120)
-    measure_fps('cfgs/yolo_v3', rept=3, datalenth=120)
-    measure_fps('cfgs/yolo_v4', rept=3, datalenth=120)
-    measure_fps('cfgs/yolo_v7', rept=3, datalenth=120)
+    datalenth = 100
+
+    # measure_fps('cfgs/test_ryolo_v3', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolo_v4', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolo_v7', rept=10, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolo_s', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolo_m', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/test_ryolox_x', rept=5, datalenth=datalenth)
+
+    # measure_fps('cfgs/yolox_ori', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolox_m', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolox_s', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolo_v3', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolo_v4', rept=5, datalenth=datalenth)
+    # measure_fps('cfgs/yolo_v7', rept=5, datalenth=datalenth)
