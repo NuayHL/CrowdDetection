@@ -1,4 +1,8 @@
+import os
+path = os.getcwd()
+os.chdir(os.path.join(path, '..'))
 import torch
+from torch.cuda import amp
 import time
 from config import get_default_cfg
 from modelzoo.build_models import BuildModel
@@ -6,7 +10,8 @@ from odcore.data.dataloader import build_dataloader
 from odcore.data.data_augment import Normalizer
 from odcore.utils.paralle import de_parallel
 
-def measure_fps(cfg, ckpt='',device=0, rept=1):
+def measure_fps(cfg, ckpt='',device=0, rept=1, datalenth=10000):
+    print("CONFIG: %s" % cfg)
     config = get_default_cfg()
     config.merge_from_files(cfg)
     builder = BuildModel(config)
@@ -35,12 +40,11 @@ def measure_fps(cfg, ckpt='',device=0, rept=1):
         except:
             print("FAIL")
             raise
-        model = model.to(device)
-        model.eval()
     else:
-        print('Please indicating one .pth/.pt file!')
-        exit()
+        print('No ckpt for eval')
 
+    model = model.to(device)
+    model.eval()
     total_fps = []
 
     for exp in range(rept):
@@ -48,16 +52,18 @@ def measure_fps(cfg, ckpt='',device=0, rept=1):
         warmup_num = 20
         total_img = 0
         total_inferecing_time = 0.0
-        pro_bar = ProgressBar(dataloader)
+        pro_bar = ProgressBar(min(len(dataloader),datalenth))
 
         for i, sample in enumerate(dataloader):
+            if i >= datalenth:
+                break
             sample['imgs'] = sample['imgs'].to(device).float() / 255
             normalizer(sample)
 
             torch.cuda.synchronize()
             start_time = time.perf_counter()
             with torch.no_grad():
-                model(sample)
+                model.core(sample['imgs'])
             torch.cuda.synchronize()
             elapsed = time.perf_counter() - start_time
 
@@ -72,8 +78,9 @@ def measure_fps(cfg, ckpt='',device=0, rept=1):
         fps = total_img/total_inferecing_time
         print("FPS: %f\n" % fps)
         total_fps.append(fps)
-    print("========== Complete ==========")
-    print("Aver. FPS: %f" % (sum(total_fps)/rept))
+
+    print("[Aver. FPS: %f]" % (sum(total_fps)/rept))
+    print("========== Complete ==========\n")
 
 
 class ProgressBar:
@@ -100,6 +107,9 @@ class ProgressBar:
               end=' ' + self._end + ' ' + endstr)
 
 if __name__ == "__main__":
-    measure_fps('cfgs/yolox_ori',
-                'running_log/YOLOX_ori/best_epoch.pth',
-                rept=10)
+    measure_fps('cfgs/yolox_ori', rept=3, datalenth=120)
+    measure_fps('cfgs/yolox_m', rept=3, datalenth=120)
+    measure_fps('cfgs/yolox_s', rept=3, datalenth=120)
+    measure_fps('cfgs/yolo_v3', rept=3, datalenth=120)
+    measure_fps('cfgs/yolo_v4', rept=3, datalenth=120)
+    measure_fps('cfgs/yolo_v7', rept=3, datalenth=120)
