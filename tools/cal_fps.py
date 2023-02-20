@@ -17,7 +17,7 @@ def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
     print("CONFIG: %s" % cfg)
     config = get_default_cfg()
     config.merge_from_files(cfg)
-    config.inference.obj_thres = 0.25
+    config.inference.obj_thres = 0.01
     builder = BuildModel(config)
     model = builder.build()
     model.set(None, device)
@@ -86,6 +86,7 @@ def measure_fps(cfg, ckpt='', device=0, warmup_num=20, rept=1, datalenth=10000):
 
     print("[Aver. FPS: %f]" % (sum(total_fps) / rept))
     print("[MAX. FPS: %f]" % max(total_fps))
+    print("[Inference Time: %fms/frame]" % (1/max(total_fps)*1000))
     print("========== Complete ==========\n")
 
 def _measure_fps(expname, pthname='best_epoch'):
@@ -127,7 +128,10 @@ if __name__ == "__main__":
     # _measure_fps('YOLOX_m_R', 'epoch_297')
     # _measure_fps('YOLOX_s', 'epoch_299')
     # _measure_fps('YOLOX_s_R', 'epoch_290')
-    _measure_fps('YOLOv3', 'epoch_240')
+    # _measure_fps('YOLOv4', 'best_epoch')
+    # _measure_fps('YOLOv4_rhead', 'epoch_300')
+    _measure_fps('YOLOv7_1', 'epoch_300')
+    # _measure_fps('YOLOv7_rhead', 'epoch_297')
 
     # measure_fps('cfgs/test_ryolo_v3', rept=5, datalenth=datalenth)
     # measure_fps('cfgs/test_ryolo_v4', rept=5, datalenth=datalenth)
