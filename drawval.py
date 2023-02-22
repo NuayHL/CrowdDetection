@@ -22,8 +22,10 @@ def main(args):
         vallog = ValLog('running_log/%s/%s_val.log' % (args.exp, args.exp))
     if args.type == 'coco':
         vallog.coco_draw(zero_start=args.zero_start)
-    else:
+    elif args.type == 'mr':
         vallog.mr_draw(zero_start=args.zero_start)
+    elif args.type == 'mip':
+        vallog.mip_draw(zero_start=args.zero_start)
 
 if __name__ == '__main__':
     args = get_args_parser().parse_args()

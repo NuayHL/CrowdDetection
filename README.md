@@ -56,14 +56,18 @@ CrowdDetection
 - Run `utility/tran_CrowdHuman.py` at root path
 - Run command
   
-    `python train.py --conf-file cfgs/yolov3 --batch-size 32 --workers 8 --device 0`
+```
+python train.py --conf-file cfgs/yolox --batch-size 32 --workers 8 --device 0 --eval-interval 10 --save-interval 50
+```
 ### Model Evaluation
+**CrowdHuman dataset required*
 ```
 python eval.py --conf-file cfgs/yolo_v4 --ckpt-file best_epoch.pth --workers 8 --batch-size 32 --type mip --force-eval
 ```
-- Replace the --ckpt-file and its correspond config yaml file for custom evaluation
+Replace the --ckpt-file and its correspond config yaml file for custom evaluation
 
-If you have complete exp dir in under the running_dir (exmple: running_log/rYOLOv4), you can start eval with *eval.sh* 
+If you have complete exp dir under the running_dir (exmple: running_log/rYOLOv4), you can start eval the .pth file
+(example: best_epoch.pth) with *eval.sh* 
 
 ```
 ./eval.sh rYOLOv4 best_epoch mip
