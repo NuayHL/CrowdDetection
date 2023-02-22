@@ -1,6 +1,7 @@
 import os
 import time
 import cv2
+import torch
 from config import get_default_cfg
 from odcore.args import get_infer_args_parser
 from odcore.engine.infer import Infer as _Infer

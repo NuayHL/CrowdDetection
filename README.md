@@ -4,7 +4,7 @@
 
 This project aims to reproduce the YOLO series via pytorch
 
-#### Environment Setting
+### Environment Setting
 - Base Enviroment
 ```
 pip install -r requirments.txt
@@ -23,7 +23,7 @@ pip install -r requirments.txt
 git clone https://github.com/NuayHL/odcore.git
 ```
 
-#### Simple Inferencing 
+### Simple Inferencing 
 - Downloading Model Weight: YOLOv3_640.pth
 
     https://drive.google.com/file/d/1-y_pMTb3lMLTr4Clw2TTQ5pYi_g--WeP/view?usp=sharing
@@ -35,7 +35,7 @@ python infer.py --ckpt-file YOLOv3_640.pth --conf-file cfgs/yolov3 --img imgs/va
 ```
 - Replace the image name to infer other images
 
-#### Model Training
+### Model Training
 
 - Download **CrowdHuman** dataset
     
@@ -57,15 +57,31 @@ CrowdDetection
 - Run command
   
     `python train.py --conf-file cfgs/yolov3 --batch-size 32 --workers 8 --device 0`
-#### Model Evaluation
-
-- CrowdHuman dataset required ! 
+### Model Evaluation
 ```
-python eval.py --conf-file cfgs/yolov3 --ckpt-file YOLOv3_640.pth --workers 8 --batch-size 32 --device 0 
+python eval.py --conf-file cfgs/yolo_v4 --ckpt-file best_epoch.pth --workers 8 --batch-size 32 --type mip --force-eval
 ```
-- Replace the --ckpt-file to other .pth files to evaluate them
+- Replace the --ckpt-file and its correspond config yaml file for custom evaluation
 
-#### Loss visualization
+If you have complete exp dir in under the running_dir (exmple: running_log/rYOLOv4), you can start eval with *eval.sh* 
+
+```
+./eval.sh rYOLOv4 best_epoch mip
+```
+
+#### Evaluation type
+
+- This repo has integrated with 3 evaluation metrics: 
+  - `--type mip`: CrowdHuman AP + MR + JI (used as final evaluation)
+    - https://github.com/megvii-model/CrowdDetection/tree/master/evaluate
+  - `--type coco`: COCO (optional used during training)
+    - https://github.com/cocodataset/cocoapi
+  - `--type mr`: COCO based MR (optional used during training)
+    - https://github.com/TencentYoutuResearch/PedestrianDetection-NohNMS/blob/main/detectron2/evaluation/crowdhuman_evaluation.py
+
+
+
+### Loss visualization
 ```
 python drawloss.py --loss-log exp_loss.log
 ```

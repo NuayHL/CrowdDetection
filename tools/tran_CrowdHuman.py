@@ -103,6 +103,6 @@ def odgt2coco(filepath, outputname, type, limit_img=30000):
     json.dump(output, open("CrowdHuman/"+outputname+".json",'w'))
 
 if __name__ == '__main__':
-    odgt2coco("CrowdHuman/annotation_val.odgt", "annotation_val_coco_style_2000", "val", limit_img=2000)
-    # odgt2coco("CrowdHuman/annotation_train.odgt","annotation_train_coco_style","train")
+    odgt2coco("CrowdHuman/annotation_val.odgt", "annotation_val_coco_style_2000", "val")
+    odgt2coco("CrowdHuman/annotation_train.odgt","annotation_train_coco_style","train")
 
