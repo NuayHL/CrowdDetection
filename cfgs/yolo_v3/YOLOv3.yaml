@@ -2,7 +2,7 @@ exp_name: YOLOv3
 inference:
   iou_thres: 0.75
   nms_type: nms
-  obj_thres: 0.25
+  obj_thres: 0.1
 loss:
   cls_type: bce
   focal_alpha: 0.25

@@ -1,7 +1,7 @@
 exp_name: YOLOX_m
 inference:
   iou_thres: 0.75
-  nms_type: soft_g
+  nms_type: soft
   obj_thres: 0.01
 loss:
   cls_type: bce
