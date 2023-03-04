@@ -7,7 +7,7 @@ This project aims to reproduce the YOLO series via pytorch
 ### Environment Setting
 - Base Enviroment
 ```
-pip install -r requirments.txt
+pip install -r requirements.txt
 ```
 - Pytorch Install
 
@@ -18,7 +18,7 @@ pip install -r requirments.txt
   
   https://github.com/NuayHL/odcore
 
-  Note: This is my private Repo
+- Note: This is my private Repo
 ```
 git clone https://github.com/NuayHL/odcore.git
 ```
@@ -92,4 +92,4 @@ python drawloss.py --loss-log exp_loss.log
 - Replace the --loss-log to other _loss.log files to visualize them
 
 
-*Copyright© NuayHL 2022. All right reserved*
+*Copyright© NuayHL 2022-2023. All right reserved*
