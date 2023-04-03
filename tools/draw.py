@@ -19,6 +19,9 @@ def val_compare(*val_files, metric_type='mr', short_exp_name=True):
             temp_log_obj.mr_val(zero_start=False)
         elif metric_type == 'coco':
             temp_log_obj.coco_val(zero_start=False)
+        elif metric_type == 'mip':
+            metric_name = 'mAP'
+            temp_log_obj.mip_val(zero_start=False)
         else:
             raise NotImplementedError
         val_logs.append(temp_log_obj)
@@ -36,9 +39,9 @@ def val_compare(*val_files, metric_type='mr', short_exp_name=True):
     plt.show()
 
 if __name__ == '__main__':
-    val_compare('YOLOX_ori_1',
-                'YOLOX_R_k7',
-                metric_type='mr')
+    val_compare('YOLOX_R_k9_0.2_lb',
+                'YOLOX_R_k9_0.2_nb',
+                metric_type='mip')
 
 
 
