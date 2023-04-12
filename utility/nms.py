@@ -35,12 +35,14 @@ class NMS():
             det[:, 5:] *= det[:, 4:5]
             conf, categories = det[:, 5:].max(dim=1, keepdim=True)
             class_offset = categories.float() * (0 if not class_indepent else self.maxwh)
-            box = xywh2xyxy(det[:, :4]) + class_offset
+            box_real = xywh2xyxy(det[:, :4])
+            box = box_real + class_offset
+            det_real = torch.cat([box_real, conf, categories], dim=1)
             det = torch.cat([box, conf, categories], dim=1)
             if det.shape[0] == 0:
                 continue
             kept_box_mask = self._nms(det[:, :5])
-            output[ib] = det[kept_box_mask]
+            output[ib] = det_real[kept_box_mask]
         return output
 
     def cal_block_output(self, dets, indicator, class_indepent=False):

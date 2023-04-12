@@ -25,10 +25,11 @@ class YoloX(BaseODModel):
         self.input_shape = (self.config.data.input_width, self.config.data.input_height)
 
         self.using_mip = self.config.model.assignment_type.lower() in ['mip', 'MIP']
+        self.multi_classes = True if self.config.data.numofclasses > 1 else False
         nms = SetNMS if self.using_mip else NMS
         self.nms = nms(config)
 
-    def core(self,input):
+    def core(self, input):
         fms = self.backbone(input)
         rea_fms = self.neck(*fms)
         dt = self.head(*rea_fms)
@@ -130,9 +131,10 @@ class YoloX(BaseODModel):
         # restore the predicting bboxes via pre-defined anchors
         dt[:, :4, :] = self.get_shift_bbox(dt[:, :4, :])
         dt[:, 4:, :] = self.sigmoid(dt[:, 4:, :])
-        dt = torch.permute(dt, (0,2,1))
+        dt = torch.permute(dt, (0, 2, 1))
 
-        result_list = self.nms(dt)
+        # result_list = self.nms(dt, class_indepent=self.multi_classes)
+        result_list = self.nms(dt, class_indepent=False)
 
         fin_result = []
         for result, id, ori_shape in zip(result_list, sample['ids'],sample['shapes']):
