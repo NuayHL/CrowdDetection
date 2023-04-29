@@ -81,8 +81,8 @@ class Anchor():
         return allPoints
 
     def gen_stride(self, singleBatch=True):
-        num_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
-        size_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
+        num_in_each_level = np.ones(len(self.fpnlevels), dtype=int)
+        size_in_each_level = np.ones(len(self.fpnlevels), dtype=int)
         anchors_per_grid = self.get_anchors_per_grid()
         for id, i in enumerate(self.fpnlevels):
             temp = self.config.data.input_width * self.config.data.input_height / (2 ** (2*i))
@@ -113,7 +113,7 @@ class Anchor():
         if not self.using_anchor:
             'Need adding warning'
             return None
-        num_in_each_level = np.ones(len(self.fpnlevels), dtype=np.int)
+        num_in_each_level = np.ones(len(self.fpnlevels), dtype=int)
         size_in_each_level = []
         anchors_per_grid = self.get_anchors_per_grid()
         for id, i in enumerate(self.fpnlevels):
@@ -152,7 +152,7 @@ class Anchor():
             num_in_this_block = self.config.data.input_width * self.config.data.input_height / (2 ** (2 * level))
             for i in range(self.get_anchors_per_grid()):
                 num_in_each_block.append(num_in_this_block)
-        num_in_each_block = np.array(num_in_each_block, dtype=np.int)
+        num_in_each_block = np.array(num_in_each_block, dtype=int)
         block_indicator = np.zeros((num_in_each_block.sum(), 1))
         starts = 0
         for i, num_in_block in enumerate(num_in_each_block):

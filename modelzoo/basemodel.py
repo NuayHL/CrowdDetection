@@ -2,7 +2,6 @@ import torch
 import torch.nn as nn
 
 from utility.result import Result
-from utility.anchors import result_parse
 
 
 class BaseODModel(nn.Module):
