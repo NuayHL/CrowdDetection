@@ -2,7 +2,7 @@
 
 ![val_1_dt](imgs/val_1_dt.png)
 
-This project aims to reproduce the YOLO series via pytorch
+YOLO for CrowdDetection
 
 ### Environment Setting
 - Base Enviroment
