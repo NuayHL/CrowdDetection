@@ -7,7 +7,7 @@ from config import get_default_cfg
 
 
 cfg = get_default_cfg()
-cfg.merge_from_files('cfgs/test_ryolox_anchor3')
+cfg.merge_from_files('cfgs/test_yoloxa_att_neck_v1')
 
 builder = BuildModel(cfg)
 model = builder.build()

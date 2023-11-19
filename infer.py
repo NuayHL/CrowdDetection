@@ -10,6 +10,7 @@ from odcore.data.dataset import VideoReader, FileImgReader
 from odcore.utils.misc import progressbar
 from modelzoo.build_models import BuildModel
 
+from multiprocessing import Process, Queue
 
 class BaseInfer():
     def __init__(self, cfg, args, device):
@@ -59,9 +60,11 @@ class VideoInfer():
         self.name = os.path.splitext(self.file_name)[0] + '_detect'
         self.output_file = os.path.join(self.base_dir, self.name) + '.avi'
         self.real_output_size = self.resize_flag if self.resize_flag else self.data.size
-        self.video_writer = cv2.VideoWriter(self.output_file, self.format, self.data.fps, self.real_output_size, True)
+
+        self.detection_result_queue = Queue(maxsize=1000)
 
     def infer(self, max_stacks=4):
+        video_writer = cv2.VideoWriter(self.output_file, self.format, self.data.fps, self.real_output_size, True)
         print('Inferencing Video:')
         print('\t-Output Size: %d X %d' % (self.real_output_size[0], self.real_output_size[1]))
         print('\t-Output File: %s' % self.output_file)
@@ -74,16 +77,52 @@ class VideoInfer():
                 det_results, ori_frames = self.core_infer(*frame_buff)
                 frame_buff = list()
                 for det_result, ori_frame in zip(det_results, ori_frames):
-                    output_frame = _add_bbox_img(ori_frame, det_result, type='x1y1x2y2')[:, :, ::-1]
+                    output_frame = _add_bbox_img(ori_frame, det_result, type='x1y1x2y2', color=[0,255,0])[:, :, ::-1]
                     if self.resize_flag:
                         output_frame = cv2.resize(output_frame, self.real_output_size)
-                    self.video_writer.write(output_frame)
+                    video_writer.write(output_frame)
             else:
                 continue
             progressbar(float(id + 1) / len(self.data), barlenth=40)
-        self.video_writer.release()
+        video_writer.release()
         print('Inferencing Success in %.2f s' % (time.time() - start_time))
 
+    def _infer(self, max_stacks=4):
+        print('Inferencing Video:')
+        print('\t-Output Size: %d X %d' % (self.real_output_size[0], self.real_output_size[1]))
+        print('\t-Output File: %s' % self.output_file)
+        writer_process = Process(target=self._detection2Video)
+        writer_process.start()
+        start_time = time.time()
+        max_stacks = max(max_stacks, 1)
+        frame_buff = list()
+        for id, frame in enumerate(self.data):
+            frame_buff.append(frame)
+            if len(frame_buff) >= max_stacks or id == len(self.data) - 1:
+                det_results, ori_frames = self.core_infer(*frame_buff)
+                frame_buff = list()
+                self.detection_result_queue.put((det_results, ori_frames))
+            else:
+                continue
+            progressbar(float(id + 1) / len(self.data), barlenth=40)
+        self.detection_result_queue.put(('exit', 'exit'))
+        writer_process.join()
+        print('Inferencing Success in %.2f s' % (time.time() - start_time))
+
+    def _detection2Video(self):
+        video_writer = cv2.VideoWriter(self.output_file, self.format, self.data.fps, self.real_output_size, True)
+        while(True):
+            time.sleep(0.05)
+            if not self.detection_result_queue.empty():
+                det_results, ori_frames = self.detection_result_queue.get()
+                if det_results == 'exit':
+                    break
+                for det_result, ori_frame in zip(det_results, ori_frames):
+                    output_frame = _add_bbox_img(ori_frame, det_result, type='x1y1x2y2')[:, :, ::-1]
+                    if self.resize_flag:
+                        output_frame = cv2.resize(output_frame, self.real_output_size)
+                    video_writer.write(output_frame)
+        video_writer.release()
 
 # ----------------------------------------------------------------------------------------------------------------------
 def main(args):
