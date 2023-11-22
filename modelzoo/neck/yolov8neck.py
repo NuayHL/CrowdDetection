@@ -10,16 +10,17 @@ Conv = YOLOv8_common.Conv
 @NeckRegister.register
 @NeckRegister.register('yolov8_neck')
 class Yolov8_neck(nn.Module):
-    def __init__(self, width, depth, deep_width, p3_channel=256, ):
+    def __init__(self, width, depth, ratio, p3_channel=256):
         super().__init__()
-        self.p3c_r = #TODO
+        self.p3c_r = 1.0
         self.upsample = nn.Upsample(scale_factor=2, mode="nearest")
 
         base_channels = int(width * 64)
-        base_depth = int()
+        base_depth = max(round(3 * depth), 1)
+
 
         # 1024 * deep_mul + 512, 40, 40 => 512, 40, 40
-        self.conv3_for_upsample1 = C2f(int(base_channels * 16 * deep_mul) + base_channels * 8, base_channels * 8,
+        self.conv3_for_upsample1 = C2f(int(base_channels * 16 * ratio) + base_channels * 8, base_channels * 8,
                                        base_depth, shortcut=False)
         # 768, 80, 80 => 256, 80, 80
         self.conv3_for_upsample2 = C2f(base_channels * 8 + base_channels * 4, base_channels * 4, base_depth,
@@ -34,8 +35,8 @@ class Yolov8_neck(nn.Module):
         # 512, 40, 40 => 512, 20, 20
         self.down_sample2 = Conv(base_channels * 8, base_channels * 8, 3, 2)
         # 1024 * deep_mul + 512, 20, 20 =>  1024 * deep_mul, 20, 20
-        self.conv3_for_downsample2 = C2f(int(base_channels * 16 * deep_mul) + base_channels * 8,
-                                         int(base_channels * 16 * deep_mul), base_depth, shortcut=False)
+        self.conv3_for_downsample2 = C2f(int(base_channels * 16 * ratio) + base_channels * 8,
+                                         int(base_channels * 16 * ratio), base_depth, shortcut=False)
 
     def forward(self, p3, p4, p5):
         P5_upsample = self.upsample(p5)
@@ -68,7 +69,6 @@ class Yolov8_neck(nn.Module):
         # P3 256, 80, 80
         # P4 512, 40, 40
         # P5 1024 * deep_mul, 20, 20
-        shape = P3.shape  # BCHW
 
         # P3 256, 80, 80 => num_classes + self.reg_max * 4, 80, 80
         # P4 512, 40, 40 => num_classes + self.reg_max * 4, 40, 40

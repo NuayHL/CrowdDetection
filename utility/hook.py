@@ -141,6 +141,51 @@ class HotMapHooker:
         plt.show()
 
     @staticmethod
+    def _neck_hot_map_hooker_with_func(module, input, output):
+        assert input[0].shape[0] == 1, "please using single batch input"
+        import torch.nn.functional as F
+        class Conv_Laplacian_Mask_2D:
+            def __init__(self, input_channels=1):
+                weight = torch.tensor([[[-1, -1, -1], [-1, 8, -1], [-1, -1, -1]]]).float()
+                self.weight = weight.unsqueeze(dim=0).tile(1, input_channels, 1, 1)
+                self.conv = nn.Conv2d(input_channels, 1, kernel_size=3, bias=False)
+                self.conv.weight = nn.Parameter(self.weight)
+            def __call__(self, x):
+                x = F.pad(x, (1, 1, 1, 1), mode='replicate')
+                self.conv.weight = nn.Parameter(self.weight.to(x.dtype).to(x.device))
+                x = torch.abs(self.conv(x))
+                return x
+
+        lap = Conv_Laplacian_Mask_2D()
+        guide = Conv_Mask_2D(kernel_size=5, yita=0.6)
+
+        in_layer = [layer.detach() for layer in input]
+        out_layer = [layer.detach() for layer in output]
+
+        sigmoid = torch.nn.Sigmoid()
+
+        in_layer_mean = [torch.mean(layer, dim=1, keepdim=True) for layer in in_layer]
+        out_layer_mean = [torch.mean(layer, dim=1, keepdim=True) for layer in out_layer]
+
+        in_layer_max = [torch.max(layer, dim=1, keepdim=True)[0] for layer in in_layer]
+        out_layer_max = [torch.max(layer, dim=1, keepdim=True)[0] for layer in out_layer]
+
+        in_layer = [sigmoid(maxl).squeeze(0).permute((1, 2, 0)).cpu().numpy() for meanl, maxl in zip(in_layer_mean, in_layer_max)]
+        out_layer = [sigmoid(meanl).squeeze(0).permute((1, 2, 0)).cpu().numpy() for meanl, maxl in zip(out_layer_mean, out_layer_max)]
+
+        in_layer_mod = [guide(lap(sigmoid(meanl))).squeeze(0).permute((1, 2, 0)).cpu().numpy() for meanl, maxl in zip(in_layer_mean, in_layer_max)]
+
+        bar = generate_hot_bar(1.0, 0.0, 80)
+
+        fig, ax = plt.subplots(1, 2)
+        ax[0].imshow(np.concatenate([in_layer[0], bar], axis=1))
+        ax[0].axis('off')
+        ax[1].imshow(np.concatenate([in_layer_mod[0], bar], axis=1))
+        ax[1].axis('off')
+
+        plt.show()
+
+    @staticmethod
     def _cbam_spatial_hooker(module, input, output):
         spatial_att = output.squeeze(0).permute((1, 2, 0)).detach().cpu().numpy()
         bar = generate_hot_bar(1.0, 0.0, spatial_att.shape[0])
