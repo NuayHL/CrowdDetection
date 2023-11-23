@@ -10,7 +10,7 @@ SPPF = YOLOv8_common.SPPF
 # the structure of the YOLOv8 is referring to the official code and third party code
 @BackboneRegister.register
 @BackboneRegister.register('cspnet-YOLOv8')
-class Backbone(nn.Module):
+class Cspnet_YOLOv8(nn.Module):
     def __init__(self, width=1.0, depth=1.0, ratio=1.0):
         super().__init__()
         base_channels = int(64 * width)

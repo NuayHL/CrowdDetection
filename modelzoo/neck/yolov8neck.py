@@ -18,6 +18,7 @@ class Yolov8_neck(nn.Module):
         base_channels = int(width * 64)
         base_depth = max(round(3 * depth), 1)
 
+        assert p3_channel == base_channels * 4
 
         # 1024 * deep_mul + 512, 40, 40 => 512, 40, 40
         self.conv3_for_upsample1 = C2f(int(base_channels * 16 * ratio) + base_channels * 8, base_channels * 8,
