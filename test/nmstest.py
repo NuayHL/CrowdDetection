@@ -24,7 +24,7 @@ cfg.merge_from_files('cfgs/test_yolox_mip')
 
 dataset = CocoDataset('CrowdHuman/annotation_train_coco_style.json','CrowdHuman/Images_train',cfg.data, 'val')
 sample = dataset[image_id]
-img = dataset.get_ori_image(image_id)
+img, _ = dataset.get_ori_image(image_id)
 gt = sample['anns']
 
 samples = CocoDataset.OD_default_collater([sample])

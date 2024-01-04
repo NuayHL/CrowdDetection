@@ -17,7 +17,8 @@ class BaseInfer():
         self.cfg = cfg
         self.args = args
         self.device = device
-        builder = BuildModel(cfg)
+        self.cfg.inference.obj_thres = args.threshold
+        builder = BuildModel(self.cfg)
         model = builder.build()
         model.set(args, self.device)
         self.core_infer = _Infer(cfg, args, model, self.device)
@@ -36,7 +37,7 @@ class BaseInfer():
                 score = result[:, 4:]
             else:
                 score = None
-            show_bbox(img, result[:, :4], type='x1y1x2y2', score=score)
+            show_bbox(img, result[:, :4], type='x1y1x2y2', score=score, thickness=2)
 
 class VideoInfer():
     output_size = dict(ori=None, hd=(1280, 720), fhd=(1920, 1080), qhd=(2560, 1440), uhd=(3840, 2160))

@@ -5,7 +5,8 @@ echo "Exp name: "$exp_name""
 echo "Image name: "$img_name""
 python -u infer.py --conf-file "running_log/"$path"/"$exp_name"_cfg.yaml" \
                    --ckpt-file "running_log/"$path"/best_epoch.pth" \
-                   --img $img_name
+                   --img $img_name \
+                   --threshold 0.01
 echo " "
 echo "Press AnyKey to Continue"
 read -n 1
